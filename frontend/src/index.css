@@ -1,0 +1,73 @@
+:root {
+  /* ── Grays (light theme — inverse order) ───────────────── */
+  --gray-900: #FAFAFA;
+  --gray-850: #FFFFFF;
+  --gray-800: #FFFFFF;
+  --gray-750: #F5F5F5;
+  --gray-700: #E8E8E8;
+  --gray-650: #E0E0E0;
+  --gray-600: #D0D0D0;
+  --gray-500: #B0B0B0;
+  --gray-400: #999999;
+  --gray-300: #888888;
+  --gray-200: #666666;
+  --gray-100: #333333;
+  --white: #1A1A1A;
+
+  /* ── Cherry red → Coral (light red) ─────────────────────── */
+  --cherry-900: #FFE8ED;
+  --cherry-800: #FFD4E0;
+  --cherry-700: #FFC0D5;
+  --cherry: #FF5A6F;
+  --cherry-500: #FF4060;
+  --cherry-400: #FF8FA3;
+  --cherry-glow: rgba(255, 90, 111, 0.1);
+  --cherry-tint: rgba(255, 90, 111, 0.08);
+
+  /* ── Typography ───────────────────────────────────────────── */
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-script: 'Dancing Script', cursive;
+
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  color-scheme: light;
+  color: #333333;
+  background: #FAFAFA;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: #FAFAFA;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: var(--cherry);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--cherry-500);
+}
+
+input,
+button,
+textarea,
+select {
+  font-family: var(--font);
+}

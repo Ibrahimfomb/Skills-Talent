@@ -1,0 +1,437 @@
+/* ─── Layout ──────────────────────────────────────────────── */
+.auth-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--gray-850);
+}
+
+/* ─── Panneau branding (gauche) ───────────────────────────── */
+.auth-brand {
+  position: relative;
+  flex: 0 0 42%;
+  background: linear-gradient(160deg, var(--gray-800) 0%, var(--gray-900) 60%, var(--cherry-900) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  overflow: hidden;
+}
+
+.auth-brand-content {
+  position: relative;
+  z-index: 1;
+  max-width: 360px;
+}
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.auth-logo-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--cherry);
+  color: var(--white);
+  font-weight: 700;
+  font-size: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-logo-text {
+  font-family: var(--font-script);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: 0;
+}
+
+.auth-brand-title {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--white);
+  letter-spacing: -0.5px;
+  margin-bottom: 16px;
+}
+
+.auth-brand-accent {
+  color: var(--cherry-400);
+}
+
+.auth-brand-subtitle {
+  font-size: 14px;
+  color: var(--gray-300);
+  line-height: 1.65;
+  margin-bottom: 36px;
+}
+
+.auth-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--gray-200);
+}
+
+.auth-feature-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--cherry-tint);
+  border: 1px solid rgba(139, 34, 50, 0.3);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cherry-400);
+  flex-shrink: 0;
+}
+
+/* Rôles preview (register) */
+.auth-role-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-role-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  color: var(--cherry-400);
+}
+
+.auth-role-card div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-role-card strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-100);
+}
+
+.auth-role-card span {
+  font-size: 12px;
+  color: var(--gray-300);
+}
+
+/* Orbes décoratifs */
+.auth-brand-decoration {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.auth-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+}
+
+.auth-orb-1 {
+  width: 300px;
+  height: 300px;
+  background: var(--cherry-700);
+  top: -80px;
+  right: -80px;
+}
+
+.auth-orb-2 {
+  width: 200px;
+  height: 200px;
+  background: var(--cherry-800);
+  bottom: 40px;
+  left: -60px;
+}
+
+/* ─── Panneau formulaire (droite) ─────────────────────────── */
+.auth-form-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  background: var(--gray-850);
+  overflow-y: auto;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-card-register {
+  max-width: 460px;
+}
+
+.auth-card-header {
+  margin-bottom: 28px;
+}
+
+.auth-card-header h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: -0.4px;
+  margin-bottom: 6px;
+}
+
+.auth-card-header p {
+  font-size: 14px;
+  color: var(--gray-300);
+}
+
+/* ─── Erreur ───────────────────────────────────────────────── */
+.auth-error {
+  background: rgba(139, 34, 50, 0.15);
+  border: 1px solid rgba(139, 34, 50, 0.4);
+  color: #F28B9A;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+/* ─── Sélecteur de rôle ────────────────────────────────────── */
+.auth-role-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: var(--gray-700);
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.auth-role-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-300);
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.auth-role-btn:hover {
+  color: var(--gray-100);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.auth-role-btn.active {
+  background: var(--cherry);
+  color: var(--white);
+  box-shadow: 0 2px 8px var(--cherry-glow);
+}
+
+/* ─── Formulaire ───────────────────────────────────────────── */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.auth-field-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.auth-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.auth-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-200);
+}
+
+.auth-field input {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--gray-700);
+  border: 1px solid var(--gray-600);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--white);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.auth-field input::placeholder {
+  color: var(--gray-400);
+}
+
+.auth-field input:focus {
+  border-color: var(--cherry);
+  box-shadow: 0 0 0 3px var(--cherry-tint);
+}
+
+.auth-input-wrap {
+  position: relative;
+}
+
+.auth-input-wrap input {
+  padding-right: 42px;
+}
+
+.auth-eye {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  transition: color 0.2s;
+}
+
+.auth-eye:hover {
+  color: var(--gray-200);
+}
+
+.auth-forgot {
+  font-size: 12px;
+  color: var(--gray-400);
+  transition: color 0.2s;
+}
+
+.auth-forgot:hover {
+  color: var(--cherry-400);
+}
+
+/* ─── Bouton principal ─────────────────────────────────────── */
+.auth-btn-primary {
+  width: 100%;
+  padding: 12px;
+  background: var(--cherry);
+  color: var(--white);
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.auth-btn-primary:hover:not(:disabled) {
+  background: var(--cherry-500);
+  box-shadow: 0 4px 16px var(--cherry-glow);
+}
+
+.auth-btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.auth-btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ─── Spinner ──────────────────────────────────────────────── */
+.auth-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Séparateur ───────────────────────────────────────────── */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  color: var(--gray-500);
+  font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gray-600);
+}
+
+/* ─── Lien switch ──────────────────────────────────────────── */
+.auth-switch {
+  text-align: center;
+  font-size: 14px;
+  color: var(--gray-300);
+}
+
+.auth-switch a {
+  color: var(--cherry-400);
+  font-weight: 500;
+}
+
+.auth-switch a:hover {
+  color: var(--cherry-500);
+}
+
+/* ─── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .auth-brand {
+    display: none;
+  }
+
+  .auth-form-panel {
+    padding: 32px 20px;
+  }
+
+  .auth-field-group {
+    grid-template-columns: 1fr;
+  }
+}

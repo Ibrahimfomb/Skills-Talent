@@ -1,0 +1,237 @@
+/* ─── Page de sélection du rôle ───────────────────────────── */
+.reg-select-shell {
+  min-height: 100vh;
+  background: var(--gray-850);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  gap: 40px;
+}
+
+.reg-select-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.reg-select-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1A1A1A;
+  letter-spacing: -0.5px;
+}
+
+.reg-select-header p {
+  font-size: 15px;
+  color: var(--gray-300);
+}
+
+/* ─── Cartes de rôle ───────────────────────────────────────── */
+.reg-select-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+  max-width: 680px;
+}
+
+.reg-role-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 32px 28px 0;
+  border-radius: 18px;
+  border: 1px solid var(--gray-600);
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  min-height: 280px;
+  background: none;
+}
+
+.reg-role-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Candidat — cerise clair */
+.reg-role-card--candidate {
+  background: linear-gradient(145deg, #fff5f7 0%, #fff0f3 60%, #ffe8ed 100%);
+  border-color: rgba(255, 90, 111, 0.25);
+}
+
+.reg-role-card--candidate:hover {
+  border-color: var(--cherry);
+  box-shadow: 0 12px 40px rgba(255, 90, 111, 0.12);
+}
+
+/* Employeur — violet/indigo clair */
+.reg-role-card--employer {
+  background: linear-gradient(145deg, #f5f0ff 0%, #ede8ff 60%, #e4d9ff 100%);
+  border-color: rgba(109, 40, 217, 0.2);
+}
+
+.reg-role-card--employer:hover {
+  border-color: rgba(109, 40, 217, 0.5);
+  box-shadow: 0 12px 40px rgba(109, 40, 217, 0.1);
+}
+
+/* Icône */
+.reg-role-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.reg-role-card--candidate .reg-role-icon {
+  background: rgba(255, 90, 111, 0.1);
+  border: 1px solid rgba(255, 90, 111, 0.25);
+  color: var(--cherry);
+}
+
+.reg-role-card--employer .reg-role-icon {
+  background: rgba(109, 40, 217, 0.1);
+  border: 1px solid rgba(109, 40, 217, 0.2);
+  color: #6D28D9;
+}
+
+.reg-role-card-body {
+  position: relative;
+  z-index: 1;
+}
+
+.reg-role-card-body h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1A1A1A;
+  letter-spacing: -0.3px;
+  margin-bottom: 10px;
+}
+
+.reg-role-card-body p {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+  max-width: 200px;
+}
+
+/* Footer de la carte */
+.reg-role-card-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin-top: 24px;
+  transition: gap 0.2s;
+}
+
+.reg-role-card--candidate .reg-role-card-footer {
+  color: var(--cherry);
+}
+
+.reg-role-card--employer .reg-role-card-footer {
+  color: #6D28D9;
+}
+
+.reg-role-card:hover .reg-role-card-footer {
+  gap: 6px;
+}
+
+/* Élément décoratif (cercle en fond) */
+.reg-role-card-deco {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  bottom: -40px;
+  right: -40px;
+  opacity: 0.12;
+  transition: opacity 0.3s;
+}
+
+.reg-role-card--candidate .reg-role-card-deco {
+  background: var(--cherry);
+  opacity: 0.06;
+}
+
+.reg-role-card--employer .reg-role-card-deco {
+  background: #6D28D9;
+  opacity: 0.06;
+}
+
+.reg-role-card:hover .reg-role-card-deco {
+  opacity: 0.22;
+}
+
+/* ─── Lien bas de page ─────────────────────────────────────── */
+.reg-select-login {
+  font-size: 14px;
+  color: var(--gray-300);
+  text-align: center;
+}
+
+.reg-select-login a {
+  color: var(--cherry-400);
+  font-weight: 500;
+}
+
+/* ─── Bouton retour (étape formulaire) ────────────────────── */
+.reg-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--gray-400);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 20px;
+  transition: color 0.2s;
+}
+
+.reg-back-btn:hover {
+  color: var(--gray-200);
+}
+
+/* Badge de profil sélectionné */
+.reg-profile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--cherry-tint);
+  border: 1px solid rgba(139, 34, 50, 0.3);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cherry-400);
+  margin-top: 24px;
+}
+
+/* ─── Responsive ───────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .reg-select-cards {
+    grid-template-columns: 1fr;
+    max-width: 340px;
+  }
+
+  .reg-role-card {
+    min-height: 200px;
+  }
+}

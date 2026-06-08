@@ -1,0 +1,310 @@
+/* ─── Shell ──────────────────────────────────────────────────── */
+.ed-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--gray-850);
+}
+
+/* ─── Top Navbar ─────────────────────────────────────────────── */
+.ed-navbar {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 0 32px;
+  height: 60px;
+  background: var(--gray-800);
+  border-bottom: 1px solid var(--gray-700);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.ed-navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ed-logo-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--cherry);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-family: var(--font-script);
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.ed-logo-text {
+  font-family: var(--font-script);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.ed-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.ed-nav-link {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-300);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  border-bottom: 2px solid transparent;
+}
+
+.ed-nav-link:hover {
+  color: var(--white);
+  background: var(--gray-700);
+}
+
+.ed-nav-link--active {
+  color: var(--white);
+  border-bottom-color: var(--cherry);
+  background: transparent;
+}
+
+.ed-navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.ed-post-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--cherry);
+  border: none;
+  border-radius: 8px;
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.ed-post-btn:hover {
+  background: var(--cherry-500, #a01830);
+}
+
+.ed-icon-btn {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  border: none;
+  background: none;
+  color: var(--gray-300);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ed-icon-btn:hover {
+  background: var(--gray-700);
+  color: var(--white);
+}
+
+/* ─── Main ───────────────────────────────────────────────────── */
+.ed-main {
+  flex: 1;
+  padding: 40px 32px;
+}
+
+.ed-content {
+  max-width: 960px;
+  width: 100%;
+}
+
+/* ─── Welcome ────────────────────────────────────────────────── */
+.ed-welcome {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+
+.ed-welcome-name {
+  color: var(--cherry-400, #e05070);
+}
+
+.ed-welcome-sub {
+  font-size: 14px;
+  color: var(--gray-400);
+  margin-bottom: 32px;
+}
+
+/* ─── CTA Banner ─────────────────────────────────────────────── */
+.ed-cta-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: linear-gradient(135deg, rgba(139,34,50,0.25) 0%, rgba(139,34,50,0.08) 100%);
+  border: 1px solid rgba(139,34,50,0.4);
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin-bottom: 40px;
+}
+
+.ed-cta-banner h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+
+.ed-cta-banner p {
+  font-size: 14px;
+  color: var(--gray-400);
+}
+
+.ed-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--cherry);
+  border: none;
+  border-radius: 10px;
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.ed-cta-btn:hover {
+  background: var(--cherry-500, #a01830);
+}
+
+/* ─── Sections ───────────────────────────────────────────────── */
+.ed-section {
+  margin-bottom: 36px;
+}
+
+.ed-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 16px;
+}
+
+/* ─── Quick access grid ──────────────────────────────────────── */
+.ed-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.ed-quick-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--gray-800);
+  border: 1px solid var(--gray-700);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s;
+}
+
+.ed-quick-card:hover {
+  border-color: var(--cherry);
+}
+
+.ed-quick-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ed-quick-icon--cherry { background: rgba(139,34,50,0.15); color: var(--cherry-400, #e05070); }
+.ed-quick-icon--blue   { background: rgba(80,120,200,0.15); color: #7eaaff; }
+.ed-quick-icon--green  { background: rgba(40,160,100,0.15); color: #4ade80; }
+.ed-quick-icon--violet { background: rgba(140,80,200,0.15); color: #c084fc; }
+
+.ed-quick-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 3px;
+}
+
+.ed-quick-desc {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+.ed-quick-arrow {
+  margin-left: auto;
+  color: var(--gray-600);
+  flex-shrink: 0;
+}
+
+/* ─── Stats grid ─────────────────────────────────────────────── */
+.ed-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.ed-stat-card {
+  background: var(--gray-800);
+  border: 1px solid var(--gray-700);
+  border-radius: 14px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.ed-stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.ed-stat-label {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 800px) {
+  .ed-navbar { padding: 0 16px; gap: 12px; }
+  .ed-nav { display: none; }
+  .ed-main { padding: 24px 16px; }
+  .ed-cta-banner { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .ed-cta-btn { width: 100%; justify-content: center; }
+  .ed-quick-grid { grid-template-columns: 1fr; }
+  .ed-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
