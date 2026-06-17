@@ -1,0 +1,223 @@
+import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Plus, Building2,
+  MapPin, Globe, Users, Star, Save, Edit3, CheckCircle,
+} from 'lucide-react'
+import { useAuthStore } from '../../store/AuthStore'
+import { COMPANIES }    from '../../data/mockData'
+import AppNavbar        from '../../components/common/AppNavbar'
+import './CompanyProfile.css'
+
+const SECTORS = ['Tech & Startups','Finance & Banque','Télécommunications','Énergie','E-commerce','Conseil & Audit','Santé','Éducation','Industrie','RH & Recrutement','Marketing & Communication','Transport & Logistique']
+const SIZES   = ['1-10','10-50','50-200','200-500','500-1000','1000-5000','5000+']
+
+export default function CompanyProfile() {
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
+
+  const companyName = user?.companyName || user?.company || null
+  const baseCompany = useMemo(() => {
+    if (companyName) {
+      return COMPANIES.find(c => c.name.toLowerCase().includes(companyName.toLowerCase())) || null
+    }
+    return null
+  }, [companyName])
+
+  const [form, setForm] = useState({
+    name:        companyName || baseCompany?.name || '',
+    sector:      baseCompany?.sector || 'Tech & Startups',
+    size:        baseCompany?.size   || '10-50',
+    city:        baseCompany?.city   || 'Douala',
+    country:     baseCompany?.country || 'Cameroun',
+    website:     '',
+    description: baseCompany?.description || '',
+    tagline:     '',
+    email:       user?.email || '',
+    phone:       '',
+  })
+  const [saved, setSaved]     = useState(false)
+  const [editing, setEditing] = useState(false)
+
+  const set = (key, val) => { setForm(prev => ({ ...prev, [key]: val })); setSaved(false) }
+
+  const handleSave = () => {
+    setSaved(true)
+    setEditing(false)
+    setTimeout(() => setSaved(false), 3000)
+  }
+
+  return (
+    <div className="cp-shell">
+      <div className="cp-blob cp-blob--main" />
+      <div className="cp-blob cp-blob--accent" />
+
+      <AppNavbar />
+
+      <main className="cp-main">
+        <div className="cp-page-header">
+          <div>
+            <h1 className="cp-title"><Building2 size={22} /> Profil de l&apos;entreprise</h1>
+            <p className="cp-subtitle">Visible par tous les candidats sur SkillSet</p>
+          </div>
+          <div className="cp-header-actions">
+            {saved && (
+              <span className="cp-saved-msg"><CheckCircle size={15} /> Sauvegardé</span>
+            )}
+            {editing ? (
+              <>
+                <button className="cp-cancel-btn" onClick={() => setEditing(false)}>Annuler</button>
+                <button className="cp-save-btn" onClick={handleSave}><Save size={15} /> Sauvegarder</button>
+              </>
+            ) : (
+              <button className="cp-edit-btn" onClick={() => setEditing(true)}><Edit3 size={15} /> Modifier</button>
+            )}
+          </div>
+        </div>
+
+        <div className="cp-layout">
+
+          {/* ── Form panel ── */}
+          <section className="cp-form-panel">
+
+            {/* Cover / Logo preview */}
+            <div className="cp-cover">
+              <div className="cp-company-logo">{baseCompany?.logo || '🏢'}</div>
+            </div>
+
+            <div className="cp-form-body">
+
+              <div className="cp-field-group">
+                <label className="cp-label">Nom de l&apos;entreprise</label>
+                {editing
+                  ? <input className="cp-input" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Nom de votre entreprise" />
+                  : <p className="cp-value">{form.name || '—'}</p>
+                }
+              </div>
+
+              <div className="cp-field-group">
+                <label className="cp-label">Accroche (tagline)</label>
+                {editing
+                  ? <input className="cp-input" value={form.tagline} onChange={e => set('tagline', e.target.value)} placeholder="Ex: L'innovation africaine, faite au Cameroun" />
+                  : <p className="cp-value">{form.tagline || '—'}</p>
+                }
+              </div>
+
+              <div className="cp-two-cols">
+                <div className="cp-field-group">
+                  <label className="cp-label">Secteur</label>
+                  {editing
+                    ? (
+                      <select className="cp-select" value={form.sector} onChange={e => set('sector', e.target.value)}>
+                        {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    )
+                    : <p className="cp-value">{form.sector}</p>
+                  }
+                </div>
+                <div className="cp-field-group">
+                  <label className="cp-label">Taille</label>
+                  {editing
+                    ? (
+                      <select className="cp-select" value={form.size} onChange={e => set('size', e.target.value)}>
+                        {SIZES.map(s => <option key={s} value={s}>{s} employés</option>)}
+                      </select>
+                    )
+                    : <p className="cp-value">{form.size} employés</p>
+                  }
+                </div>
+              </div>
+
+              <div className="cp-two-cols">
+                <div className="cp-field-group">
+                  <label className="cp-label"><MapPin size={12} /> Ville</label>
+                  {editing
+                    ? <input className="cp-input" value={form.city} onChange={e => set('city', e.target.value)} placeholder="Douala" />
+                    : <p className="cp-value">{form.city || '—'}</p>
+                  }
+                </div>
+                <div className="cp-field-group">
+                  <label className="cp-label">Pays</label>
+                  {editing
+                    ? <input className="cp-input" value={form.country} onChange={e => set('country', e.target.value)} placeholder="Cameroun" />
+                    : <p className="cp-value">{form.country || '—'}</p>
+                  }
+                </div>
+              </div>
+
+              <div className="cp-two-cols">
+                <div className="cp-field-group">
+                  <label className="cp-label"><Globe size={12} /> Site web</label>
+                  {editing
+                    ? <input className="cp-input" value={form.website} onChange={e => set('website', e.target.value)} placeholder="https://votre-site.com" />
+                    : <p className="cp-value">{form.website || '—'}</p>
+                  }
+                </div>
+                <div className="cp-field-group">
+                  <label className="cp-label">Email de contact</label>
+                  {editing
+                    ? <input className="cp-input" value={form.email} onChange={e => set('email', e.target.value)} placeholder="rh@entreprise.cm" />
+                    : <p className="cp-value">{form.email || '—'}</p>
+                  }
+                </div>
+              </div>
+
+              <div className="cp-field-group">
+                <label className="cp-label">Description</label>
+                {editing
+                  ? (
+                    <textarea
+                      className="cp-textarea"
+                      rows={4}
+                      value={form.description}
+                      onChange={e => set('description', e.target.value)}
+                      placeholder="Décrivez votre entreprise, vos valeurs, votre mission…"
+                    />
+                  )
+                  : <p className="cp-value cp-value--multi">{form.description || '—'}</p>
+                }
+              </div>
+
+            </div>
+          </section>
+
+          {/* ── Preview panel ── */}
+          <aside className="cp-preview-panel">
+            <p className="cp-preview-title">Aperçu candidat</p>
+            <div className="cp-preview-card">
+              <div className="cp-preview-cover">
+                <div className="cp-preview-logo">{baseCompany?.logo || '🏢'}</div>
+              </div>
+              <div className="cp-preview-body">
+                <h3 className="cp-preview-name">{form.name || 'Nom de l\'entreprise'}</h3>
+                {form.tagline && <p className="cp-preview-tagline">{form.tagline}</p>}
+                <div className="cp-preview-meta">
+                  <span><Building2 size={12} /> {form.sector}</span>
+                  <span><Users size={12} /> {form.size} employés</span>
+                  <span><MapPin size={12} /> {form.city}, {form.country}</span>
+                </div>
+                {baseCompany && (
+                  <div className="cp-preview-rating">
+                    {[1,2,3,4,5].map(n => (
+                      <Star
+                        key={n}
+                        size={13}
+                        fill={n <= Math.round(baseCompany.rating) ? '#f5a623' : 'none'}
+                        color={n <= Math.round(baseCompany.rating) ? '#f5a623' : '#ddd'}
+                      />
+                    ))}
+                    <span className="cp-preview-rating-val">{baseCompany.rating}</span>
+                    <span className="cp-preview-rating-count">({baseCompany.reviewCount} avis)</span>
+                  </div>
+                )}
+                {form.description && (
+                  <p className="cp-preview-desc">{form.description}</p>
+                )}
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  )
+}

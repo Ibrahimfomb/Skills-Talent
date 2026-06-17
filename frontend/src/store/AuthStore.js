@@ -5,31 +5,33 @@ const STORAGE_KEY = 'ss_auth'
 export const useAuthStore = create((set) => ({
   user: null,
   isAuthenticated: false,
+  initialized: false,   // true once loadFromStorage has run
 
-  // Called after login or register — data contains user fields + token
   setAuth: (data) => {
     const { token, ...user } = data
     if (token) localStorage.setItem('authToken', token)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user))
-    set({ user, isAuthenticated: true })
+    set({ user, isAuthenticated: true, initialized: true })
   },
 
   logout: () => {
     localStorage.removeItem('authToken')
     localStorage.removeItem(STORAGE_KEY)
-    set({ user: null, isAuthenticated: false })
+    set({ user: null, isAuthenticated: false, initialized: true })
   },
 
-  // Called on app mount to restore session from localStorage
+  // Called on app mount — must complete before ProtectedRoute evaluates
   loadFromStorage: () => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
+      const raw   = localStorage.getItem(STORAGE_KEY)
       const token = localStorage.getItem('authToken')
       if (raw && token) {
-        set({ user: JSON.parse(raw), isAuthenticated: true })
+        set({ user: JSON.parse(raw), isAuthenticated: true, initialized: true })
+        return
       }
     } catch {
       // corrupted storage — ignore
     }
+    set({ initialized: true })
   },
 }))

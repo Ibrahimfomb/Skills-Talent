@@ -43,12 +43,13 @@
   align-items: center;
   justify-content: center;
   color: var(--white);
-  font-weight: 800;
+  font-family: var(--font-script, cursive);
+  font-weight: 700;
   font-size: 16px;
 }
 
 .ob-logo-text {
-  font-family: var(--font-script);
+  font-family: var(--font-script, cursive);
   font-weight: 700;
   font-size: 22px;
   color: var(--white);
@@ -495,6 +496,49 @@
   border-radius: 0 6px 6px 0;
   line-height: 1.5;
 }
+
+/* ─── Country + City combined card ─────────────────────────── */
+.ob-location-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 8px;
+}
+.ob-location-row--city { margin-top: 10px; }
+.ob-location-label {
+  flex-shrink: 0;
+  width: 44px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  padding-top: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.ob-dropdown-container--flex { flex: 1; }
+.ob-selected-chip--inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: #fff5f5;
+  border: 1.5px solid #ffd5da;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+.ob-selected-chip--inline button {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: #c42033;
+  cursor: pointer;
+  padding: 1px;
+  opacity: 0.7;
+}
+.ob-selected-chip--inline button:hover { opacity: 1; }
 
 /* ─── Responsive ────────────────────────────────────────────── */
 @media (max-width: 480px) {

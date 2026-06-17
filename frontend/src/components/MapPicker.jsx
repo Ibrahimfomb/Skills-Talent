@@ -42,31 +42,35 @@ export default function MapPicker({ value, onChange, onAddressFound }) {
   const mapRef     = useRef(null)
   const handlerRef = useRef(null)   // stable ref for the click handler
 
-  // Parse initial value once on mount
+  // Parse initial value once on mount — defer setState to avoid synchronous effect cascade
   useEffect(() => {
     if (value?.includes(',')) {
       const [lat, lng] = value.split(',').map(Number)
       if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-        setPosition([lat, lng])
+        const t = setTimeout(() => setPosition([lat, lng]), 0)
         mapRef.current?.setView([lat, lng], 14)
+        return () => clearTimeout(t)
       }
     }
+    return undefined
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep handlerRef current without re-rendering MapClickEvents
-  handlerRef.current = async (lat, lng) => {
-    const round = n => Math.round(n * 1e6) / 1e6
-    const rlat = round(lat)
-    const rlng = round(lng)
-    setPosition([rlat, rlng])
-    onChange(`${rlat},${rlng}`)
+  // Keep handlerRef current — must be in useEffect, not render body
+  useEffect(() => {
+    handlerRef.current = async (lat, lng) => {
+      const round = n => Math.round(n * 1e6) / 1e6
+      const rlat = round(lat)
+      const rlng = round(lng)
+      setPosition([rlat, rlng])
+      onChange(`${rlat},${rlng}`)
 
-    const fullAddress = await reverseGeocode(rlat, rlng)
-    if (fullAddress) {
-      setAddress(fullAddress)
-      onAddressFound?.(fullAddress)
+      const fullAddress = await reverseGeocode(rlat, rlng)
+      if (fullAddress) {
+        setAddress(fullAddress)
+        onAddressFound?.(fullAddress)
+      }
     }
-  }
+  }, [onChange, onAddressFound])
 
   const handleSearch = async () => {
     if (!searchInput.trim()) return

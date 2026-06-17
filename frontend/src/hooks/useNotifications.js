@@ -7,7 +7,8 @@ export const useNotifications = (userId) => {
   useEffect(() => {
     if (userId) {
       // TODO: Fetch notifications from API
-      setLoading(false);
+      const t = setTimeout(() => setLoading(false), 0)
+      return () => clearTimeout(t)
     }
   }, [userId]);
   

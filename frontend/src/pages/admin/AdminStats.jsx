@@ -16,7 +16,8 @@ const ROLE_META = {
   ADMIN:     { label: 'Admin',     cls: 'role--admin'     },
 }
 
-/* ─── Sidebar ────────────────────────────────────────────────── */
+const DOT_TYPE = { user: 'dot--user', job: 'dot--job', check: 'dot--check', alert: 'dot--alert', file: 'dot--file' }
+
 function Sidebar({ onLogout }) {
   return (
     <aside className="ad-sidebar">
@@ -26,46 +27,43 @@ function Sidebar({ onLogout }) {
         <span className="ad-admin-badge">Admin</span>
       </div>
       <nav className="ad-nav">
-        <NavLink to="/dashboard/admin" end className={({ isActive }) => `ad-nav-item ${isActive ? 'ad-nav-item--active' : ''}`}>
-          <LayoutDashboard size={18} /><span>Vue d'ensemble</span>
+        <NavLink to="/dashboard/admin" end className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
+          <LayoutDashboard size={18} /> Vue d&apos;ensemble
         </NavLink>
-        <NavLink to="/admin/users" className={({ isActive }) => `ad-nav-item ${isActive ? 'ad-nav-item--active' : ''}`}>
-          <Users size={18} /><span>Utilisateurs</span>
+        <NavLink to="/admin/users" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
+          <Users size={18} /> Utilisateurs
         </NavLink>
-        <NavLink to="/admin/jobs" className={({ isActive }) => `ad-nav-item ${isActive ? 'ad-nav-item--active' : ''}`}>
-          <Briefcase size={18} /><span>Offres d'emploi</span>
+        <NavLink to="/admin/jobs" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
+          <Briefcase size={18} /> Offres d&apos;emploi
         </NavLink>
-        <NavLink to="/admin/applications" className={({ isActive }) => `ad-nav-item ${isActive ? 'ad-nav-item--active' : ''}`}>
-          <FileText size={18} /><span>Candidatures</span>
+        <NavLink to="/admin/applications" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
+          <FileText size={18} /> Candidatures
         </NavLink>
-        <NavLink to="/admin/moderation" className={({ isActive }) => `ad-nav-item ${isActive ? 'ad-nav-item--active' : ''}`}>
-          <ShieldCheck size={18} /><span>Modération</span>
+        <NavLink to="/admin/moderation" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
+          <ShieldCheck size={18} /> Modération
         </NavLink>
       </nav>
       <button className="ad-logout" onClick={onLogout}>
-        <LogOut size={16} /><span>Déconnexion</span>
+        <LogOut size={18} /> Déconnexion
       </button>
     </aside>
   )
 }
 
-/* ─── Main ───────────────────────────────────────────────────── */
 export default function AdminStats() {
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
-  const [search, setSearch]       = useState('')
-  const [activeTab, setActiveTab] = useState('users')
-
-  const [stats, setStats]         = useState(null)
-  const [users, setUsers]         = useState([])
-  const [loading, setLoading]     = useState(true)
+  const [search, setSearch]             = useState('')
+  const [activeTab, setActiveTab]       = useState('users')
+  const [stats, setStats]               = useState(null)
+  const [users, setUsers]               = useState([])
+  const [loading, setLoading]           = useState(true)
   const [usersLoading, setUsersLoading] = useState(false)
-  const [error, setError]         = useState('')
+  const [error, setError]               = useState('')
 
   const handleLogout = () => { logout(); navigate('/login') }
   const adminName = user?.firstName || 'Administrateur'
 
-  /* Fetch global stats on mount */
   useEffect(() => {
     getAdminStats()
       .then(data => { setStats(data); setUsers(data.recentUsers || []) })
@@ -73,7 +71,6 @@ export default function AdminStats() {
       .finally(() => setLoading(false))
   }, [])
 
-  /* Search users */
   const handleSearch = useCallback(async (q) => {
     setUsersLoading(true)
     try {
@@ -91,7 +88,6 @@ export default function AdminStats() {
     return () => clearTimeout(timer)
   }, [search, handleSearch])
 
-  /* Toggle user active/inactive */
   const handleToggle = async (userId) => {
     try {
       await toggleUserStatus(userId)
@@ -108,87 +104,94 @@ export default function AdminStats() {
 
   if (loading) {
     return (
-      <div className="ad-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 size={36} className="ob-spinner" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#FFFBF0' }}>
+        <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: '#D97706' }} />
       </div>
     )
   }
 
-  const totalUsers      = stats?.totalUsers      ?? 0
-  const totalJobs       = stats?.totalJobs       ?? 0
+  const totalUsers      = stats?.totalUsers        ?? 0
+  const totalJobs       = stats?.totalJobs         ?? 0
   const totalApps       = stats?.totalApplications ?? 0
   const acceptedApps    = stats?.acceptedApplications ?? 0
-  const totalCandidates = stats?.totalCandidates ?? 0
-  const totalEmployers  = stats?.totalEmployers  ?? 0
-  const activity        = stats?.recentActivity  ?? []
+  const totalCandidates = stats?.totalCandidates   ?? 0
+  const totalEmployers  = stats?.totalEmployers    ?? 0
+  const activity        = stats?.recentActivity    ?? []
 
   const candidatePct = totalUsers > 0 ? Math.round((totalCandidates / totalUsers) * 100) : 0
   const employerPct  = totalUsers > 0 ? Math.round((totalEmployers  / totalUsers) * 100) : 0
+  const adminPct     = totalUsers > 0 ? Math.round(((totalUsers - totalCandidates - totalEmployers) / totalUsers) * 100) : 0
 
   return (
     <div className="ad-shell">
       <Sidebar onLogout={handleLogout} />
 
       <main className="ad-main">
-        {/* ── Header ── */}
-        <header className="ad-header">
+        {/* Header */}
+        <div className="ad-header">
           <div>
-            <h1 className="ad-greeting">
-              Panneau d'administration — <span className="ad-greeting-name">{adminName}</span>
-            </h1>
+            <p className="ad-greeting">
+              Panneau d&apos;administration — <span className="ad-greeting-name">{adminName}</span>
+            </p>
             <p className="ad-greeting-sub">Gérez la plateforme SkillSet</p>
           </div>
           <div className="ad-header-right">
-            <button className="ad-icon-btn"><Bell size={20} /></button>
-            <div className="ad-avatar"><CircleUser size={34} /></div>
+            <button className="ad-icon-btn" aria-label="Notifications"><Bell size={18} /></button>
+            <CircleUser size={32} className="ad-avatar" />
           </div>
-        </header>
+        </div>
 
-        {error && <div className="ad-alert" style={{ margin: '0 0 1rem' }}><AlertTriangle size={16} /><p>{error}</p></div>}
+        {error && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fde8ea', border: '1px solid #f5c0c8', borderRadius: 10, color: '#c42033', fontSize: 14, marginBottom: 24 }}>
+            <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+            <p style={{ margin: 0 }}>{error}</p>
+          </div>
+        )}
 
-        {/* ── Global stats ── */}
-        <section className="ad-stats">
+        {/* Stats grid */}
+        <div className="ad-stats">
           <div className="ad-stat-card">
             <div className="ad-stat-icon ad-stat-icon--amber"><Users size={20} /></div>
             <div>
-              <p className="ad-stat-value">{totalUsers}</p>
-              <p className="ad-stat-label">Utilisateurs total</p>
+              <div className="ad-stat-value">{totalUsers}</div>
+              <div className="ad-stat-label">Utilisateurs</div>
             </div>
-            <div className="ad-stat-trend up"><TrendingUp size={14} /> {stats?.activeUsers ?? 0} actifs</div>
+            <div className="ad-stat-trend up"><TrendingUp size={12} /> {stats?.activeUsers ?? 0} actifs</div>
           </div>
           <div className="ad-stat-card">
             <div className="ad-stat-icon ad-stat-icon--indigo"><Briefcase size={20} /></div>
             <div>
-              <p className="ad-stat-value">{totalJobs}</p>
-              <p className="ad-stat-label">Offres publiées</p>
+              <div className="ad-stat-value">{totalJobs}</div>
+              <div className="ad-stat-label">Offres</div>
             </div>
-            <div className="ad-stat-trend up"><TrendingUp size={14} /> {stats?.openJobs ?? 0} ouvertes</div>
+            <div className="ad-stat-trend up"><TrendingUp size={12} /> {stats?.openJobs ?? 0} ouvertes</div>
           </div>
           <div className="ad-stat-card">
             <div className="ad-stat-icon ad-stat-icon--cherry"><FileText size={20} /></div>
             <div>
-              <p className="ad-stat-value">{totalApps}</p>
-              <p className="ad-stat-label">Candidatures</p>
+              <div className="ad-stat-value">{totalApps}</div>
+              <div className="ad-stat-label">Candidatures</div>
             </div>
-            <div className="ad-stat-trend up"><TrendingUp size={14} /> {stats?.pendingApplications ?? 0} en attente</div>
+            <div className="ad-stat-trend up"><TrendingUp size={12} /> {stats?.pendingApplications ?? 0} en attente</div>
           </div>
           <div className="ad-stat-card">
             <div className="ad-stat-icon ad-stat-icon--green"><CheckCircle size={20} /></div>
             <div>
-              <p className="ad-stat-value">{acceptedApps}</p>
-              <p className="ad-stat-label">Recrutements finalisés</p>
+              <div className="ad-stat-value">{acceptedApps}</div>
+              <div className="ad-stat-label">Finalisées</div>
             </div>
           </div>
-        </section>
+        </div>
 
+        {/* Main grid */}
         <div className="ad-grid">
-          {/* ── Users table ── */}
-          <section className="ad-content">
+          {/* Users table */}
+          <div className="ad-content">
             <div className="ad-tabs">
-              <button className={`ad-tab ${activeTab === 'users' ? 'ad-tab--active' : ''}`} onClick={() => setActiveTab('users')}>
-                <Users size={15} /> Utilisateurs
+              <button onClick={() => setActiveTab('users')} className={`ad-tab${activeTab === 'users' ? ' ad-tab--active' : ''}`}>
+                <Users size={15} /> Users
               </button>
-              <button className={`ad-tab ${activeTab === 'jobs' ? 'ad-tab--active' : ''}`} onClick={() => setActiveTab('jobs')}>
+              <button onClick={() => setActiveTab('jobs')} className={`ad-tab${activeTab === 'jobs' ? ' ad-tab--active' : ''}`}>
                 <Briefcase size={15} /> Offres
               </button>
             </div>
@@ -203,7 +206,7 @@ export default function AdminStats() {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                   />
-                  {usersLoading && <Loader2 size={16} className="ob-spinner" style={{ marginLeft: 8 }} />}
+                  {usersLoading && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite', color: '#D97706', flexShrink: 0 }} />}
                 </div>
                 <table className="ad-table">
                   <thead>
@@ -222,27 +225,29 @@ export default function AdminStats() {
                         <tr key={u.id}>
                           <td>
                             <div className="ad-user-cell">
-                              <div className="ad-user-avatar"><CircleUser size={26} /></div>
+                              <CircleUser size={22} className="ad-user-avatar" />
                               <div>
-                                <p className="ad-user-name">{u.name}</p>
-                                <p className="ad-user-email">{u.email}</p>
+                                <div className="ad-user-name">{u.name}</div>
+                                <div className="ad-user-email">{u.email}</div>
                               </div>
                             </div>
                           </td>
-                          <td><span className={`ad-role-badge ${roleMeta.cls}`}>{roleMeta.label}</span></td>
+                          <td>
+                            <span className={`ad-role-badge ${roleMeta.cls}`}>{roleMeta.label}</span>
+                          </td>
                           <td>
                             <span className={`ad-status-badge ${u.status === 'ACTIVE' ? 'st--active' : 'st--inactive'}`}>
                               {u.status === 'ACTIVE' ? <CheckCircle size={12} /> : <XCircle size={12} />}
                               {u.status === 'ACTIVE' ? 'Actif' : 'Inactif'}
                             </span>
                           </td>
-                          <td className="ad-date">{u.joinedAt}</td>
+                          <td><span className="ad-date">{u.joinedAt}</span></td>
                           <td>
                             <div className="ad-actions">
                               <button className="ad-action-btn">Voir</button>
                               {u.status === 'ACTIVE'
-                                ? <button className="ad-action-btn ad-action-btn--danger" onClick={() => handleToggle(u.id)}>Désactiver</button>
-                                : <button className="ad-action-btn ad-action-btn--success" onClick={() => handleToggle(u.id)}>Activer</button>
+                                ? <button onClick={() => handleToggle(u.id)} className="ad-action-btn ad-action-btn--danger">Désactiver</button>
+                                : <button onClick={() => handleToggle(u.id)} className="ad-action-btn ad-action-btn--success">Activer</button>
                               }
                             </div>
                           </td>
@@ -250,44 +255,58 @@ export default function AdminStats() {
                       )
                     })}
                     {users.length === 0 && !usersLoading && (
-                      <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>Aucun utilisateur trouvé</td></tr>
+                      <tr>
+                        <td colSpan={5}>
+                          <div className="ad-empty">
+                            <Users size={36} className="ad-empty-icon" />
+                            <p>Aucun utilisateur trouvé</p>
+                          </div>
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
-                <button className="ad-see-all">Gérer tous les utilisateurs <ChevronRight size={14} /></button>
+                <button className="ad-see-all">
+                  Gérer tous les utilisateurs <ChevronRight size={16} />
+                </button>
               </>
             )}
 
             {activeTab === 'jobs' && (
               <div className="ad-empty">
                 <Briefcase size={40} className="ad-empty-icon" />
-                <p>Gestion des offres d'emploi</p>
-                <span>Fonctionnalité en cours d'implémentation</span>
+                <p>Gestion des offres d&apos;emploi</p>
+                <span>Fonctionnalité en cours d&apos;implémentation</span>
               </div>
             )}
-          </section>
+          </div>
 
-          {/* ── Activity feed ── */}
-          <section className="ad-activity">
-            <h3 className="ad-section-title"><Activity size={16} /> Activité récente</h3>
-            <div className="ad-feed">
-              {activity.length === 0
-                ? <p style={{ opacity: 0.5, fontSize: '0.85rem' }}>Aucune activité récente</p>
-                : activity.map((a, i) => (
-                  <div key={i} className="ad-feed-item">
-                    <div className={`ad-feed-dot dot--${a.type}`} />
-                    <div>
-                      <p className="ad-feed-msg">{a.message}</p>
-                      <p className="ad-feed-time"><Clock size={11} /> {a.time}</p>
+          {/* Activity sidebar */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Activity feed */}
+            <div className="ad-activity">
+              <div className="ad-section-title">
+                <Activity size={16} /> Activité récente
+              </div>
+              <div className="ad-feed">
+                {activity.length === 0
+                  ? <span style={{ fontSize: 13, color: '#bbb' }}>Aucune activité récente</span>
+                  : activity.map((a, i) => (
+                    <div key={a.id || i} className="ad-feed-item">
+                      <div className={`ad-feed-dot ${DOT_TYPE[a.type] ?? 'dot--check'}`} />
+                      <div>
+                        <div className="ad-feed-msg">{a.message}</div>
+                        <div className="ad-feed-time"><Clock size={11} /> {a.time}</div>
+                      </div>
                     </div>
-                  </div>
-                ))
-              }
+                  ))
+                }
+              </div>
             </div>
 
-            {/* User distribution */}
-            <div className="ad-quick">
-              <h4 className="ad-quick-title">Répartition des utilisateurs</h4>
+            {/* User distribution bars */}
+            <div className="ad-activity">
+              <div className="ad-section-title"><TrendingUp size={16} /> Répartition</div>
               <div className="ad-quick-bar">
                 <div className="ad-bar-item">
                   <span className="ad-bar-label">Candidats</span>
@@ -306,18 +325,19 @@ export default function AdminStats() {
                 <div className="ad-bar-item">
                   <span className="ad-bar-label">Admins</span>
                   <div className="ad-bar-track">
-                    <div className="ad-bar-fill ad-bar-fill--amber" style={{ width: '5%' }} />
+                    <div className="ad-bar-fill ad-bar-fill--amber" style={{ width: `${adminPct}%` }} />
                   </div>
                   <span className="ad-bar-val">{totalUsers - totalCandidates - totalEmployers}</span>
                 </div>
               </div>
             </div>
 
+            {/* Alert */}
             <div className="ad-alert">
-              <AlertTriangle size={16} />
-              <p>{stats?.pendingApplications ?? 0} candidature(s) en attente de traitement</p>
+              <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+              {stats?.pendingApplications ?? 0} candidature(s) en attente de traitement
             </div>
-          </section>
+          </div>
         </div>
       </main>
     </div>

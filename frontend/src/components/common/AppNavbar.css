@@ -1,0 +1,193 @@
+/* ─── AppNavbar — design uniforme JobSearch ───────────────── */
+.an-navbar {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 0 40px;
+  height: 64px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.an-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.an-logo-icon {
+  width: 34px;
+  height: 34px;
+  background: #c42033;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--font-script, cursive);
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.an-logo-text {
+  font-family: var(--font-script, cursive);
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.an-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.an-nav-link {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: background 0.14s, color 0.14s;
+  line-height: 2;
+  white-space: nowrap;
+}
+.an-nav-link:hover { color: #1a1a1a; background: #f5f5f5; }
+.an-nav-link--active { color: #c42033; border-bottom-color: #c42033; font-weight: 600; }
+
+.an-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.an-post-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #c42033;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s;
+  white-space: nowrap;
+}
+.an-post-btn:hover { background: #a81a2b; }
+
+.an-icon-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: none;
+  background: none;
+  color: #888;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.14s, color 0.14s;
+  flex-shrink: 0;
+}
+.an-icon-btn:hover { background: #f5f5f5; color: #1a1a1a; }
+
+.an-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: #c42033;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #fff;
+  pointer-events: none;
+}
+
+/* ── Hamburger (mobile only) ── */
+.an-hamburger {
+  display: none;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: none;
+  background: none;
+  color: #555;
+  cursor: pointer;
+}
+
+/* ── Mobile drawer ── */
+.an-drawer-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 200;
+}
+
+.an-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 260px;
+  height: 100vh;
+  background: #fff;
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  gap: 4px;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.1);
+}
+
+.an-drawer-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  text-decoration: none;
+}
+
+.an-drawer-link {
+  display: block;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #555;
+  text-decoration: none;
+  transition: background 0.14s, color 0.14s;
+}
+.an-drawer-link:hover { background: #f5f5f5; color: #1a1a1a; }
+.an-drawer-link--active { color: #c42033; background: #fff5f5; font-weight: 600; }
+
+@media (max-width: 760px) {
+  .an-navbar { padding: 0 16px; gap: 12px; }
+  .an-nav { display: none; }
+  .an-hamburger { display: flex; }
+  .an-post-btn { display: none; }
+  .an-drawer-overlay { display: block; }
+}

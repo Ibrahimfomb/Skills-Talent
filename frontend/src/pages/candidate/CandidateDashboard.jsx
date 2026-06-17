@@ -1,10 +1,14 @@
-import { useState } from 'react'
-import { useNavigate, NavLink } from 'react-router-dom'
+import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-  Search, MapPin, Bell, MessageSquare, CircleUser,
-  LogOut, Clock, X, Briefcase, FileText,
+  Search, MapPin, CircleUser,
+  Clock, X, Briefcase, FileText, Sparkles,
+  BookmarkCheck, CalendarCheck,
 } from 'lucide-react'
-import { useAuthStore } from '../../store/AuthStore'
+import { useAuthStore }     from '../../store/AuthStore'
+import { useUserDataStore } from '../../store/UserDataStore'
+import { getRecommendedJobs, profileCompleteness } from '../../utils/matchingUtils'
+import AppNavbar            from '../../components/common/AppNavbar'
 import './CandidateDashboard.css'
 
 const SUGGESTIONS = [
@@ -14,16 +18,22 @@ const SUGGESTIONS = [
 ]
 
 export default function CandidateDashboard() {
-  const navigate   = useNavigate()
-  const { user, logout } = useAuthStore()
-  const firstName  = user?.firstName || 'vous'
+  const navigate = useNavigate()
+  const { user }                                = useAuthStore()
+  const { savedJobs, applications, interviews } = useUserDataStore()
+  const firstName = user?.firstName || 'vous'
+
+  const profile = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('ss_profile') || 'null') ?? user } catch { return user }
+  }, [user])
+
+  const recommendedJobs = useMemo(() => getRecommendedJobs(profile, 3), [profile])
+  const completeness    = useMemo(() => profileCompleteness(profile), [profile])
 
   const [query, setQuery]       = useState('')
   const [location, setLocation] = useState('')
   const [recentSearches, setRecentSearches] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(`ss_searches_${user?.id}`) || '[]')
-    } catch { return [] }
+    try { return JSON.parse(localStorage.getItem(`ss_searches_${user?.id}`) || '[]') } catch { return [] }
   })
 
   const doSearch = (q = query, l = location) => {
@@ -43,103 +53,141 @@ export default function CandidateDashboard() {
     try { localStorage.setItem(`ss_searches_${user?.id}`, JSON.stringify(updated)) } catch { /* ignore */ }
   }
 
-  const handleLogout = () => { logout(); navigate('/login') }
-
   return (
     <div className="cd-shell">
+      <div className="cd-blob cd-blob--main" />
+      <div className="cd-blob cd-blob--accent" />
 
-      {/* ── Top Navigation ── */}
-      <header className="cd-navbar">
-        <div className="cd-navbar-brand">
-          <span className="cd-logo-icon">S</span>
-          <span className="cd-logo-text">SkillSet</span>
-        </div>
+      <AppNavbar />
 
-        <nav className="cd-nav">
-          <NavLink to="/dashboard/candidate" end className={({ isActive }) => `cd-nav-link ${isActive ? 'cd-nav-link--active' : ''}`}>
-            Page d'accueil
-          </NavLink>
-          <NavLink to="/jobs" className={({ isActive }) => `cd-nav-link ${isActive ? 'cd-nav-link--active' : ''}`}>
-            Offres d'emploi
-          </NavLink>
-          <NavLink to="/applications" className={({ isActive }) => `cd-nav-link ${isActive ? 'cd-nav-link--active' : ''}`}>
-            Mes candidatures
-          </NavLink>
-        </nav>
-
-        <div className="cd-navbar-actions">
-          <NavLink to="/messages"      className="cd-icon-btn" aria-label="Messages"><MessageSquare size={20} /></NavLink>
-          <NavLink to="/notifications" className="cd-icon-btn" aria-label="Notifications"><Bell size={20} /></NavLink>
-          <NavLink to="/profile"       className="cd-icon-btn" aria-label="Profil"><CircleUser size={22} /></NavLink>
-          <button                      className="cd-icon-btn" onClick={handleLogout} aria-label="Déconnexion"><LogOut size={20} /></button>
-        </div>
-      </header>
-
-      {/* ── Main ── */}
-      <main className="cd-main">
-
-        {/* Search bar */}
-        <div className="cd-search-wrap">
-          <div className="cd-search-bar">
-            <div className="cd-search-field">
-              <Search size={17} className="cd-search-icon" />
-              <input
-                className="cd-search-input"
-                placeholder="Intitulé de poste, mots-clés ou..."
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && doSearch()}
-              />
-            </div>
-            <div className="cd-search-sep" />
-            <div className="cd-search-field">
-              <MapPin size={17} className="cd-search-icon" />
-              <input
-                className="cd-search-input"
-                placeholder="Ville, département, code postal..."
-                value={location}
-                onChange={e => setLocation(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && doSearch()}
-              />
-            </div>
-            <button className="cd-search-btn" onClick={() => doSearch()}>
-              Rechercher
-            </button>
+      {/* ── Zone de recherche (dégradé rosé) ── */}
+      <div className="cd-search-wrap">
+        <div className="cd-search-bar">
+          <div className="cd-search-field">
+            <Search size={16} className="cd-search-icon" />
+            <input
+              className="cd-search-input"
+              placeholder="Poste, compétences, mots-clés…"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && doSearch()}
+            />
           </div>
+          <div className="cd-search-sep" />
+          <div className="cd-search-field">
+            <MapPin size={16} className="cd-search-icon" />
+            <input
+              className="cd-search-input"
+              placeholder="Ville ou code postal…"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && doSearch()}
+            />
+          </div>
+          <button className="cd-search-btn" onClick={() => doSearch()}>
+            Rechercher
+          </button>
         </div>
+      </div>
 
-        {/* Content area */}
+      {/* ── Contenu principal ── */}
+      <main className="cd-main">
         <div className="cd-content">
-          <h1 className="cd-welcome">Bienvenue, <span className="cd-welcome-name">{firstName}</span></h1>
 
-          {/* Recent searches */}
-          <section className="cd-section">
-            <h2 className="cd-section-title">Mes recherches récentes</h2>
+          <p className="cd-welcome">
+            Bonjour, <span className="cd-welcome-name">{firstName}</span> 👋
+          </p>
+
+          {/* Complétude du profil */}
+          {completeness < 100 && (
+            <div className="cd-profile-bar-wrap">
+              <div className="cd-profile-bar-info">
+                <span>Profil complété à <strong>{completeness}%</strong></span>
+              </div>
+              <div className="cd-profile-bar-track">
+                <div className="cd-profile-bar-fill" style={{ width: `${completeness}%` }} />
+              </div>
+              <button className="cd-profile-bar-btn" onClick={() => navigate('/profile')}>
+                Compléter mon profil →
+              </button>
+            </div>
+          )}
+
+          {/* Stats */}
+          <div className="cd-stats-row">
+            <div className="cd-stat-chip">
+              <Briefcase size={14} />
+              {applications.length} Candidature{applications.length !== 1 ? 's' : ''}
+            </div>
+            <div className="cd-stat-chip">
+              <BookmarkCheck size={14} />
+              {savedJobs.length} Offre{savedJobs.length !== 1 ? 's' : ''} sauvegardée{savedJobs.length !== 1 ? 's' : ''}
+            </div>
+            <div className="cd-stat-chip">
+              <CalendarCheck size={14} />
+              {interviews.length} Entretien{interviews.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+
+          {/* Recommandations STELLA */}
+          {recommendedJobs.length > 0 && (
+            <div className="cd-section">
+              <p className="cd-section-title">
+                <Sparkles size={14} /> Recommandations STELLA
+              </p>
+              <div className="cd-recommended-list">
+                {recommendedJobs.map(job => (
+                  <button
+                    key={job.id}
+                    className="cd-recommended-card"
+                    onClick={() => navigate(`/jobs?q=${encodeURIComponent(job.title)}`)}
+                  >
+                    <span className="cd-rec-logo">{job.logo}</span>
+                    <div className="cd-rec-info">
+                      <p className="cd-rec-title">{job.title}</p>
+                      <p className="cd-rec-company">{job.company} · {job.location}</p>
+                    </div>
+                    <span className="cd-rec-match">{job.matchPct}%</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recherches récentes */}
+          <div className="cd-section">
+            <p className="cd-section-title">
+              <Clock size={14} /> Recherches récentes
+            </p>
             {recentSearches.length === 0 ? (
-              <p className="cd-empty-hint">Vos dernières recherches s'afficheront ici.</p>
+              <p className="cd-empty-hint">Aucune recherche enregistrée.</p>
             ) : (
               <div className="cd-recent-list">
                 {recentSearches.map(s => (
-                  <div key={s.id} className="cd-recent-chip" onClick={() => { setQuery(s.q); setLocation(s.l); doSearch(s.q, s.l) }}>
-                    <Clock size={14} />
-                    <span className="cd-recent-label">{s.q || 'Toutes offres'}</span>
-                    {s.l && <span className="cd-recent-loc">— {s.l}</span>}
+                  <div key={s.id} className="cd-recent-chip">
+                    <button
+                      className="cd-recent-chip-btn"
+                      onClick={() => { setQuery(s.q); setLocation(s.l); doSearch(s.q, s.l) }}
+                    >
+                      {s.q || 'Toutes offres'}
+                      {s.l && <span className="cd-recent-loc">· {s.l}</span>}
+                    </button>
                     <button
                       className="cd-recent-del"
-                      onClick={e => { e.stopPropagation(); removeSearch(s.id) }}
+                      onClick={() => removeSearch(s.id)}
                       aria-label="Supprimer"
                     >
-                      <X size={12} />
+                      <X size={11} />
                     </button>
                   </div>
                 ))}
               </div>
             )}
-          </section>
+          </div>
 
           {/* Suggestions */}
-          <section className="cd-section">
-            <h2 className="cd-section-title">Suggestions de recherche</h2>
+          <div className="cd-section">
+            <p className="cd-section-title">Suggestions</p>
             <div className="cd-suggestions">
               {SUGGESTIONS.map(s => (
                 <button
@@ -147,30 +195,32 @@ export default function CandidateDashboard() {
                   className="cd-suggestion"
                   onClick={() => { setQuery(s); doSearch(s, location) }}
                 >
-                  <Search size={13} />
                   {s}
                 </button>
               ))}
             </div>
-          </section>
+          </div>
 
-          {/* Quick links */}
-          <section className="cd-section cd-quick-links">
-            <button className="cd-quick-card" onClick={() => navigate('/jobs')}>
-              <Briefcase size={22} />
-              <span>Explorer les offres</span>
-            </button>
-            <button className="cd-quick-card" onClick={() => navigate('/profile')}>
-              <CircleUser size={22} />
-              <span>Compléter mon profil</span>
-            </button>
-            <button className="cd-quick-card" onClick={() => navigate('/applications')}>
-              <FileText size={22} />
-              <span>Mes candidatures</span>
-            </button>
-          </section>
+          {/* Accès rapides */}
+          <div className="cd-section">
+            <p className="cd-section-title">Accès rapides</p>
+            <div className="cd-quick-links">
+              {[
+                { icon: <Briefcase size={22} />,  label: 'Explorer les offres', path: '/jobs'         },
+                { icon: <CircleUser size={22} />,  label: 'Mon profil',          path: '/profile'      },
+                { icon: <FileText size={22} />,    label: 'Mes candidatures',    path: '/applications' },
+              ].map(({ icon, label, path }) => (
+                <button key={path} className="cd-quick-card" onClick={() => navigate(path)}>
+                  {icon}
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
         </div>
       </main>
+
     </div>
   )
 }

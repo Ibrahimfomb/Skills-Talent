@@ -86,7 +86,10 @@ public class OnboardingService {
             profile.setContractType(init.getOrDefault("contractType", ""));
             profile.setCountry(init.getOrDefault("candidateCountry", ""));
             profile.setCity(init.getOrDefault("candidateCity", ""));
-            profile.setAiAnswers(aiAnswersJson);
+            // Merge initial answers + AI answers so all data is persisted (LinkedIn, work auth, etc.)
+            Map<String, String> allAnswers = new java.util.HashMap<>(init);
+            if (request.getAiAnswers() != null) allAnswers.putAll(request.getAiAnswers());
+            profile.setAiAnswers(toJson(allAnswers));
             profile.setWantsCv(request.isWantsCv());
             candidateProfileRepositoryPort.save(profile);
         }
