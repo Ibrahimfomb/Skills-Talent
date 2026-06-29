@@ -18,9 +18,15 @@ import PostJobPage         from '../pages/employer/PostJobPage'
 import EmployerJobs        from '../pages/employer/EmployerJobs'
 import CandidateReview     from '../pages/employer/CandidateReview'
 import CompanyProfile      from '../pages/employer/CompanyProfile'
-import AdminStats          from '../pages/admin/AdminStats'
-import ProtectedRoute      from './ProtectedRoute'
-import RoleGuard           from './RoleGuard'
+import AdminStats             from '../pages/admin/AdminStats'
+import AdminAnalytics         from '../pages/admin/AdminAnalytics'
+import ModerationPanel        from '../pages/admin/ModerationPanel'
+import UserManagement         from '../pages/admin/UserManagement'
+import CareersPage            from '../pages/public/CareersPage'
+import NotificationListener   from '../features/notifications/NotificationListener'
+import ConsentBanner          from '../features/consent/ConsentBanner'
+import ProtectedRoute         from './ProtectedRoute'
+import RoleGuard              from './RoleGuard'
 
 const NO_STELLA_ROUTES = ['/login', '/register', '/onboarding']
 
@@ -44,9 +50,10 @@ const AppRouter = () => (
   <BrowserRouter>
     <Routes>
       {/* Public */}
-      <Route path="/"         element={<Navigate to="/login" replace />} />
-      <Route path="/login"    element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/"                  element={<Navigate to="/login" replace />} />
+      <Route path="/login"             element={<LoginPage />} />
+      <Route path="/register"          element={<RegisterPage />} />
+      <Route path="/careers/:slug"     element={<CareersPage />} />
 
       {/* Onboarding */}
       <Route path="/onboarding" element={
@@ -102,6 +109,21 @@ const AppRouter = () => (
       <Route path="/dashboard/admin" element={
         <ProtectedRoute><RoleGuard roles={['ADMIN']}><AdminStats /></RoleGuard></ProtectedRoute>
       } />
+      <Route path="/admin/users" element={
+        <ProtectedRoute><RoleGuard roles={['ADMIN']}><UserManagement /></RoleGuard></ProtectedRoute>
+      } />
+      <Route path="/admin/jobs" element={
+        <ProtectedRoute><RoleGuard roles={['ADMIN']}><AdminStats /></RoleGuard></ProtectedRoute>
+      } />
+      <Route path="/admin/applications" element={
+        <ProtectedRoute><RoleGuard roles={['ADMIN']}><AdminStats /></RoleGuard></ProtectedRoute>
+      } />
+      <Route path="/admin/moderation" element={
+        <ProtectedRoute><RoleGuard roles={['ADMIN']}><ModerationPanel /></RoleGuard></ProtectedRoute>
+      } />
+      <Route path="/admin/analytics" element={
+        <ProtectedRoute><RoleGuard roles={['ADMIN']}><AdminAnalytics /></RoleGuard></ProtectedRoute>
+      } />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/login" replace />} />
@@ -109,6 +131,10 @@ const AppRouter = () => (
 
     {/* STELLA persists across all pages — rendered outside <Routes> so it never remounts */}
     <GlobalChatbot />
+    {/* WebSocket notification listener — subscribes to /topic/notifications/{userId} */}
+    <NotificationListener />
+    {/* RGPD consent banner — shown once to authenticated users */}
+    <ConsentBanner />
   </BrowserRouter>
 )
 

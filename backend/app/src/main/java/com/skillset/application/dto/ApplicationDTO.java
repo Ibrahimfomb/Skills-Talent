@@ -1,18 +1,15 @@
 package com.skillset.application.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class ApplicationDTO {
-    private String id;
-    private String jobSeekerId;
-    private String jobListingId;
-    private String coverLetter;
-    private String cvUrl;
-    private String status;
-    private Double matchScore;
-}
+public record ApplicationDTO(
+    String id,
+    String jobSeekerId,
+    String jobListingId,
+    String coverLetter,
+    String cvUrl,
+    String status,
+    Double matchScore,
+    String matchExplanation,
+    String candidateName,
+    String candidateEmail,
+    String jobTitle
+) {}

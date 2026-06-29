@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import {
   Send, Search, MessageSquare, CheckCheck, Plus, X, Phone,
 } from 'lucide-react'
 import { useAuthStore }              from '../../store/AuthStore'
 import { useMessageStore, CONTACTS } from '../../store/MessageStore'
+import { messageService }            from '../../services/messageService'
+import { useWebSocket }              from '../../hooks/useWebSocket'
+import { markAsRead }               from '../../api/MessageApi'
 import AppNavbar                     from '../../components/common/AppNavbar'
 import './MessageCenter.css'
 
@@ -22,9 +24,21 @@ function fmtMsgTime(iso) {
 }
 
 export default function MessageCenter() {
-  const navigate = useNavigate()
-  const { user }                                                                       = useAuthStore()
-  const { conversations, activeConvId, setActiveConv, sendMessage, startConversation } = useMessageStore()
+  const { user }                                                                                   = useAuthStore()
+  const { conversations, activeConvId, setActiveConv, sendMessage, startConversation, receiveMessage } = useMessageStore()
+
+  // Real-time: receive messages via WebSocket, dispatch to store, mark as read if conv is active
+  const onWsMessage = useCallback((dto) => {
+    const otherId = dto.senderId === user?.id ? dto.recipientId : dto.senderId
+    const conv    = conversations.find(c => c.contact?.id === otherId)
+    if (conv) {
+      receiveMessage(conv.id, dto.content, dto.senderId)
+      if (conv.id === activeConvId && dto.id) {
+        markAsRead(dto.id).catch(() => {})
+      }
+    }
+  }, [conversations, user?.id, receiveMessage, activeConvId])
+  useWebSocket(user?.id ?? null, onWsMessage)
 
   const [text, setText]           = useState('')
   const [search, setSearch]       = useState('')
@@ -71,6 +85,8 @@ export default function MessageCenter() {
     if (!trimmed || !activeConvId) return
     sendMessage(activeConvId, trimmed)
     setText('')
+    messageService.sendMessage({ receiverId: activeConv?.contact?.id, content: trimmed })
+      .catch(() => {})
   }
 
   const handleKey = (e) => {

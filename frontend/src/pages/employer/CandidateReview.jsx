@@ -1,100 +1,149 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import {
-  Plus,
-  Users, CheckCircle2, XCircle, Calendar, ChevronDown, Filter, Search,
-} from 'lucide-react'
-import { useAuthStore } from '../../store/AuthStore'
-import { JOBS }         from '../../data/mockData'
-import AppNavbar        from '../../components/common/AppNavbar'
+import { useState, useCallback, useEffect } from 'react'
+import PropTypes from 'prop-types'
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import { Calendar, Search, Filter, ChevronDown, Loader2, ListChecks } from 'lucide-react'
+import { useAuthStore }            from '../../store/AuthStore'
+import AppNavbar                   from '../../components/common/AppNavbar'
+import MatchScoreBadge             from '../../features/matching/MatchScoreBadge'
+import ReviewPanel                 from '../../features/reviews/ReviewPanel'
+import BulkStatusModal             from '../../features/automation/BulkStatusModal'
+import { getEmployerApplications, updateApplicationStatus } from '../../api/ApplicationApi'
 import './CandidateReview.css'
 
-const FIRST_NAMES = ['Yves','Aisha','Jean-Paul','Christelle','Bruno','Sandra','Thierry','Grace','Patrick','Laure','Serge','Marie-Claire','Hervé','Félicité','Rodrigue','Patience','Armel','Nadège','Cédric','Vanessa']
-const LAST_NAMES  = ['Mbarga','Fofana','Essomba','Ngo','Kamdem','Ewome','Abanda','Mfou','Ndzana','Biyong','Fouda','Onana','Ateba','Ndoumbe','Talla','Eyebe','Melingui','Otele','Mendo','Beti']
-const DEGREES     = ['Bac+3 Informatique','Bac+5 Finance','Bac+4 Marketing','Bac+5 Gestion','Bac+3 Commerce','Bac+5 Ingénierie','Bac+2 Comptabilité','Bac+4 RH','MBA Finance','Bac+5 Data Science']
-const STATUSES    = ['Nouveau','En cours','Entretien planifié','Accepté','Refusé']
-
-const STATUS_CLASS = {
-  'Nouveau':            'cr-status--new',
-  'En cours':           'cr-status--progress',
-  'Entretien planifié': 'cr-status--interview',
-  'Accepté':            'cr-status--accepted',
-  'Refusé':             'cr-status--refused',
-}
-
-const NAV_LINKS = [
-  ['/dashboard/employer', 'Tableau de bord', true],
-  ['/employer/jobs',      'Mes offres',        false],
-  ['/employer/candidates','Candidatures',      false],
-  ['/employer/company',   'Mon entreprise',    false],
+const COLUMNS = [
+  { id: 'SUBMITTED', label: 'Soumis',    color: '#2b4fbf', bg: '#e8f0ff' },
+  { id: 'SCREENING', label: 'Screening', color: '#a05a00', bg: '#fff3e0' },
+  { id: 'INTERVIEW', label: 'Entretien', color: '#7c3aed', bg: '#f3e8ff' },
+  { id: 'OFFER',     label: 'Offre',     color: '#0d7a5f', bg: '#e0f7f4' },
+  { id: 'APPROVED',  label: 'Accepté',   color: '#1a6e44', bg: '#e8f8ee' },
+  { id: 'REJECTED',  label: 'Rejeté',    color: '#c42033', bg: '#fff0f0' },
 ]
 
+function initials(name = '') {
+  return name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'
+}
+
+function KanbanCard({ c, idx, onSelect, isSelected, onToggle }) {
+  return (
+    <Draggable draggableId={c.id} index={idx}>
+      {(prov, snap) => (
+        <div
+          ref={prov.innerRef}
+          {...prov.draggableProps}
+          {...prov.dragHandleProps}
+          className={`kb-card${snap.isDragging ? ' kb-card--dragging' : ''}${isSelected ? ' kb-card--selected' : ''}`}
+          onClick={() => onSelect(c)}
+        >
+          <div className="kb-card-top">
+            <div className="kb-avatar">{c.initials}</div>
+            <div className="kb-name">{c.name || 'Candidat anonyme'}</div>
+            <input
+              type="checkbox"
+              className="kb-card-check"
+              checked={isSelected}
+              onClick={e => e.stopPropagation()}
+              onChange={e => { e.stopPropagation(); onToggle(c.id) }}
+            />
+          </div>
+          <div className="kb-job" title={c.jobTitle}>{c.jobTitle}</div>
+          <div className="kb-card-footer">
+            <MatchScoreBadge score={c.match} explanation={c.explanation} size="sm" />
+            <span className="kb-date"><Calendar size={10} />{c.appliedDate}</span>
+          </div>
+        </div>
+      )}
+    </Draggable>
+  )
+}
+
+KanbanCard.propTypes = {
+  c: PropTypes.shape({
+    id:          PropTypes.string.isRequired,
+    initials:    PropTypes.string.isRequired,
+    name:        PropTypes.string,
+    jobTitle:    PropTypes.string,
+    match:       PropTypes.number,
+    explanation: PropTypes.string,
+    appliedDate: PropTypes.string,
+  }).isRequired,
+  idx:        PropTypes.number.isRequired,
+  onSelect:   PropTypes.func.isRequired,
+  isSelected: PropTypes.bool.isRequired,
+  onToggle:   PropTypes.func.isRequired,
+}
+
 export default function CandidateReview() {
-  const navigate = useNavigate()
   const { user } = useAuthStore()
 
-  const [filterStatus, setFilterStatus] = useState('all')
-  const [filterJob,    setFilterJob]    = useState('all')
-  const [search,       setSearch]       = useState('')
-  const [statuses,     setStatuses]     = useState({})
+  const [cards,         setCards]         = useState([])
+  const [statuses,      setStatuses]      = useState({})
+  const [filterJob,     setFilterJob]     = useState('all')
+  const [search,        setSearch]        = useState('')
+  const [loading,       setLoading]       = useState(true)
+  const [error,         setError]         = useState(null)
+  const [selectedCard,  setSelectedCard]  = useState(null)
+  const [selectedIds,   setSelectedIds]   = useState(new Set())
+  const [bulkModalOpen, setBulkModalOpen] = useState(false)
 
-  const companyName = user?.companyName || user?.company || null
-  const userSeed = useMemo(
-    () => (user?.id || 'default').split('').reduce((a, c) => a + (c.codePointAt(0) ?? 0), 0),
-    [user?.id]
-  )
+  // ── Chargement des données réelles ─────────────────────────────────────────
+  useEffect(() => { loadCards() }, [user?.id, loadCards])
 
-  const jobs = useMemo(() =>
-    companyName
-      ? JOBS.filter(j => j.company.toLowerCase().includes(companyName.toLowerCase()))
-      : JOBS.slice(0, 3),
-    [companyName]
-  )
+  // ── Jobs distincts pour le filtre ──────────────────────────────────────────
+  const jobs = [...new Map(cards.map(c => [c.jobId, { id: c.jobId, title: c.jobTitle }])).values()]
 
-  const candidates = useMemo(() => {
-    let s = userSeed
-    const rand = () => {
-      s = ((s * 1664525 + 1013904223) & 0xffffffff) >>> 0
-      return s / 0xffffffff
-    }
-    const result = []
-    jobs.forEach((job, ji) => {
-      const count = 2 + Math.floor(rand() * 4)
-      for (let i = 0; i < count; i++) {
-        const fi = Math.floor(rand() * FIRST_NAMES.length)
-        const li = Math.floor(rand() * LAST_NAMES.length)
-        const di = Math.floor(rand() * DEGREES.length)
-        const si = Math.floor(rand() * STATUSES.length)
-        const match = 45 + Math.floor(rand() * 50)
-        const yearsExp = Math.floor(rand() * 8) + 1
-        result.push({
-          id: `cand-${ji}-${i}`,
-          name: `${FIRST_NAMES[fi]} ${LAST_NAMES[li]}`,
-          initials: `${FIRST_NAMES[fi][0]}${LAST_NAMES[li][0]}`,
-          degree: DEGREES[di],
-          defaultStatus: STATUSES[si],
-          match,
-          yearsExp,
-          jobId: job.id,
-          jobTitle: job.title,
-          appliedDate: new Date(2026, 5, 10 - Math.floor(rand() * 14)).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
-        })
-      }
-    })
-    return result
-  }, [jobs, userSeed])
-
-  const getStatus = (id, def) => statuses[id] ?? def
-  const setStatus = (id, s) => setStatuses(prev => ({ ...prev, [id]: s }))
-
-  const filtered = candidates.filter(c => {
-    const st = getStatus(c.id, c.defaultStatus)
-    return (
-      (filterStatus === 'all' || st === filterStatus) &&
-      (filterJob === 'all' || c.jobId === filterJob) &&
-      (!search || c.name.toLowerCase().includes(search.toLowerCase()) || c.jobTitle.toLowerCase().includes(search.toLowerCase()))
-    )
+  // ── Filtrage ───────────────────────────────────────────────────────────────
+  const visible = cards.filter(c => {
+    const q = search.toLowerCase()
+    return (filterJob === 'all' || c.jobId === filterJob) &&
+      (q === '' || (c.name?.toLowerCase().includes(q)) || (c.jobTitle?.toLowerCase().includes(q)))
   })
+
+  // ── Organisation par colonne ───────────────────────────────────────────────
+  const byColumn = Object.fromEntries(COLUMNS.map(col => [col.id, []]))
+  visible.forEach(c => {
+    const st = statuses[c.id] ?? c.defaultStatus
+    if (byColumn[st]) byColumn[st].push(c)
+  })
+
+  // ── Sélection en masse ────────────────────────────────────────────────────
+  const toggleSelect = useCallback((id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  const loadCards = useCallback(() => {
+    setLoading(true)
+    getEmployerApplications()
+      .then(dtos => {
+        setCards(dtos.map(dto => ({
+          id:            dto.id,
+          name:          dto.candidateName,
+          initials:      initials(dto.candidateName),
+          jobTitle:      dto.jobTitle,
+          jobId:         dto.jobListingId,
+          match:         dto.matchScore,
+          explanation:   dto.matchExplanation,
+          defaultStatus: dto.status,
+          appliedDate:   '',
+        })))
+      })
+      .catch(err => setError(err?.response?.data?.message || 'Impossible de charger les candidatures.'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  // ── Drag & Drop → PATCH /applications/{id}/status ─────────────────────────
+  const onDragEnd = useCallback(({ source, destination, draggableId }) => {
+    if (!destination || destination.droppableId === source.droppableId) return
+    const newStatus = destination.droppableId
+    setStatuses(prev => ({ ...prev, [draggableId]: newStatus }))
+    updateApplicationStatus(draggableId, newStatus).catch(() => {
+      // Rollback visuel si l'appel échoue
+      setStatuses(prev => ({ ...prev, [draggableId]: source.droppableId }))
+    })
+  }, [])
 
   return (
     <div className="cr-shell">
@@ -103,127 +152,107 @@ export default function CandidateReview() {
 
       <AppNavbar />
 
-      <main className="cr-main">
-        {/* Page header */}
+      <main className="cr-main cr-main--board">
         <div className="cr-header">
-          <h1 className="cr-title">Candidatures reçues</h1>
+          <h1 className="cr-title">Pipeline des candidatures</h1>
           <p className="cr-subtitle">
-            {candidates.length} candidat{candidates.length !== 1 ? 's' : ''} au total
+            {loading ? 'Chargement…' : `${cards.length} candidat${cards.length !== 1 ? 's' : ''} · glisser-déposer pour changer de statut`}
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="cr-filters">
-          {/* Search */}
+        <div className="cr-filters cr-filters--board">
           <div className="cr-filter-wrap">
             <Search size={14} className="cr-filter-icon" />
             <input
               className="cr-select"
               style={{ paddingLeft: 32 }}
-              placeholder="Rechercher un candidat..."
+              placeholder="Rechercher un candidat…"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          {/* Status filter */}
           <div className="cr-filter-wrap">
             <Filter size={13} className="cr-filter-icon" />
-            <select
-              className="cr-select"
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-            >
-              <option value="all">Tous les statuts</option>
-              {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <ChevronDown size={13} className="cr-filter-arrow" />
-          </div>
-          {/* Job filter */}
-          <div className="cr-filter-wrap">
-            <Filter size={13} className="cr-filter-icon" />
-            <select
-              className="cr-select"
-              value={filterJob}
-              onChange={e => setFilterJob(e.target.value)}
-            >
+            <select className="cr-select" value={filterJob} onChange={e => setFilterJob(e.target.value)}>
               <option value="all">Tous les postes</option>
               {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
             </select>
             <ChevronDown size={13} className="cr-filter-arrow" />
           </div>
+          {selectedIds.size > 0 && (
+            <button className="cr-bulk-btn" onClick={() => setBulkModalOpen(true)}>
+              <ListChecks size={15} />
+              Actions en masse ({selectedIds.size})
+            </button>
+          )}
         </div>
 
-        {/* Candidate list */}
-        {filtered.length === 0 ? (
-          <div className="cr-empty">
-            <Users size={48} strokeWidth={1} className="cr-empty-icon" />
-            <h3>Aucun candidat trouvé</h3>
-            <p>Modifiez les filtres ou publiez une offre pour recevoir des candidatures.</p>
-          </div>
-        ) : (
-          <div className="cr-list">
-            {filtered.map(c => {
-              const status = getStatus(c.id, c.defaultStatus)
-              return (
-                <div key={c.id} className="cr-card">
-                  {/* Avatar */}
-                  <div className="cr-avatar" style={{
-                    width: 44, height: 44, borderRadius: '50%', background: '#fde8ea',
-                    color: '#c42033', fontSize: 15, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}>
-                    {c.initials}
-                  </div>
-                  {/* Info */}
-                  <div className="cr-info">
-                    <div className="cr-info-top">
-                      <span className="cr-name">{c.name}</span>
-                      <span className={`cr-status ${STATUS_CLASS[status] ?? ''}`}>{status}</span>
-                    </div>
-                    <p className="cr-degree">{c.degree} · {c.yearsExp} an{c.yearsExp > 1 ? 's' : ''} d&apos;exp.</p>
-                    <div className="cr-meta">
-                      <span className="cr-job-tag">{c.jobTitle}</span>
-                      <span className="cr-date"><Calendar size={11} /> {c.appliedDate}</span>
-                    </div>
-                  </div>
-                  {/* Match score */}
-                  <div className="cr-match">
-                    <span className="cr-match-value">{c.match}%</span>
-                    <span className="cr-match-label">Score IA</span>
-                  </div>
-                  {/* Actions */}
-                  <div className="cr-actions">
-                    <button
-                      className="cr-btn cr-btn--accept"
-                      onClick={() => setStatus(c.id, 'Accepté')}
-                      disabled={status === 'Accepté'}
-                      title="Accepter"
-                    >
-                      <CheckCircle2 size={14} />
-                    </button>
-                    <button
-                      className="cr-btn cr-btn--interview"
-                      onClick={() => setStatus(c.id, 'Entretien planifié')}
-                      disabled={status === 'Entretien planifié'}
-                      title="Planifier entretien"
-                    >
-                      <Calendar size={14} />
-                    </button>
-                    <button
-                      className="cr-btn cr-btn--refuse"
-                      onClick={() => setStatus(c.id, 'Refusé')}
-                      disabled={status === 'Refusé'}
-                      title="Refuser"
-                    >
-                      <XCircle size={14} />
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
+        {loading && (
+          <div className="cr-loading">
+            <Loader2 size={28} className="cr-loading-icon" />
+            <p>Chargement des candidatures…</p>
           </div>
         )}
+
+        {error && !loading && (
+          <div className="cr-error">{error}</div>
+        )}
+
+        {!loading && !error && (
+          <DragDropContext onDragEnd={onDragEnd}>
+            <div className="kb-board">
+              {COLUMNS.map(col => {
+                const colCards = byColumn[col.id] ?? []
+                return (
+                  <div key={col.id} className="kb-col">
+                    <div className="kb-col-header" style={{ borderBottomColor: col.color }}>
+                      <span className="kb-col-label" style={{ color: col.color }}>{col.label}</span>
+                      <span className="kb-col-count" style={{ background: col.bg, color: col.color }}>{colCards.length}</span>
+                    </div>
+                    <Droppable droppableId={col.id}>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className={`kb-col-body${snapshot.isDraggingOver ? ' kb-col-body--over' : ''}`}
+                        >
+                          {colCards.map((c, idx) => (
+                            <KanbanCard
+                              key={c.id}
+                              c={c}
+                              idx={idx}
+                              onSelect={setSelectedCard}
+                              isSelected={selectedIds.has(c.id)}
+                              onToggle={toggleSelect}
+                            />
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </div>
+                )
+              })}
+            </div>
+          </DragDropContext>
+        )}
       </main>
+
+      {selectedCard && (
+        <ReviewPanel card={selectedCard} onClose={() => setSelectedCard(null)} />
+      )}
+
+      {bulkModalOpen && (
+        <BulkStatusModal
+          selectedIds={[...selectedIds]}
+          onSuccess={() => {
+            setSelectedIds(new Set())
+            setBulkModalOpen(false)
+            loadCards()
+          }}
+          onClose={() => setBulkModalOpen(false)}
+        />
+      )}
     </div>
   )
 }

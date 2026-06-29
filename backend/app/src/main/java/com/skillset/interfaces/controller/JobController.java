@@ -6,6 +6,8 @@ import com.skillset.domain.entity.JobListing;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,31 +17,35 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JobController {
     private final JobService jobService;
-    
+
     @PostMapping
-    public ResponseEntity<JobListing> createJob(@RequestBody JobListing jobListing) {
-        JobListing createdJob = jobService.createJob(jobListing);
+    @PreAuthorize("hasRole('EMPLOYER')")
+    public ResponseEntity<JobListing> createJob(@AuthenticationPrincipal String userId,
+                                                @RequestBody JobListing jobListing) {
+        JobListing createdJob = jobService.createJob(userId, jobListing);
         return new ResponseEntity<>(createdJob, HttpStatus.CREATED);
     }
-    
+
     @GetMapping
     public ResponseEntity<List<JobListingDTO>> getAllOpenJobs() {
         List<JobListingDTO> jobs = jobService.getAllJobs();
         return ResponseEntity.ok(jobs);
     }
-    
+
     @GetMapping("/search")
     public ResponseEntity<List<JobListingDTO>> searchJobs(@RequestParam String location) {
         List<JobListingDTO> jobs = jobService.getJobsByLocation(location);
         return ResponseEntity.ok(jobs);
     }
-    
+
     @GetMapping("/company/{companyId}")
-    public ResponseEntity<List<JobListingDTO>> getCompanyJobs(@PathVariable String companyId) {
-        List<JobListingDTO> jobs = jobService.getCompanyJobs(companyId);
+    @PreAuthorize("hasRole('ADMIN') or #companyId == authentication.principal")
+    public ResponseEntity<List<JobListingDTO>> getCompanyJobs(@AuthenticationPrincipal String currentUserId,
+                                                                @PathVariable String companyId) {
+        List<JobListingDTO> jobs = jobService.getCompanyJobs(currentUserId, companyId);
         return ResponseEntity.ok(jobs);
     }
-    
+
     @GetMapping("/{jobId}")
     public ResponseEntity<JobListing> getJobById(@PathVariable String jobId) {
         var job = jobService.getJobById(jobId);
@@ -48,10 +54,13 @@ public class JobController {
         }
         return ResponseEntity.notFound().build();
     }
-    
+
     @PutMapping("/{jobId}")
-    public ResponseEntity<JobListing> updateJob(@PathVariable String jobId, @RequestBody JobListing jobDetails) {
-        JobListing updatedJob = jobService.updateJob(jobId, jobDetails);
+    @PreAuthorize("hasRole('EMPLOYER')")
+    public ResponseEntity<JobListing> updateJob(@AuthenticationPrincipal String userId,
+                                                @PathVariable String jobId,
+                                                @RequestBody JobListing jobDetails) {
+        JobListing updatedJob = jobService.updateJob(userId, jobId, jobDetails);
         if (updatedJob != null) {
             return ResponseEntity.ok(updatedJob);
         }

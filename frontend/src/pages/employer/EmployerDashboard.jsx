@@ -5,9 +5,10 @@ import {
   Briefcase, Users, CheckCircle, ChevronRight,
   BarChart2, Calendar,
 } from 'lucide-react'
-import { useAuthStore } from '../../store/AuthStore'
-import { JOBS }         from '../../data/mockData'
-import AppNavbar        from '../../components/common/AppNavbar'
+import { useAuthStore }       from '../../store/AuthStore'
+import { JOBS }               from '../../data/mockData'
+import AppNavbar              from '../../components/common/AppNavbar'
+import AutomationRulesPanel   from '../../features/automation/AutomationRulesPanel'
 import './EmployerDashboard.css'
 
 function DonutChart({ pct = 0 }) {
@@ -343,6 +344,11 @@ export default function EmployerDashboard() {
               </div>
             </div>
 
+          </div>
+
+          {/* Règles d'automatisation */}
+          <div className="ed-section">
+            <AutomationRulesPanel />
           </div>
 
         </div>

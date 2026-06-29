@@ -3,6 +3,7 @@ package com.skillset.application.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skillset.application.dto.MatchResult;
 import com.skillset.application.dto.onboarding.QuestionDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -26,6 +28,67 @@ public class ClaudeApiService {
     private static final String CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
     private static final String MODEL = "claude-haiku-4-5-20251001";
     private static final String NON_PRECISE = "Non précisé";
+
+    // ── Analyse de matching CV / offre ────────────────────────────────────────
+
+    /**
+     * Envoie le texte du CV et les exigences du poste à Claude.
+     * Retourne Optional.empty() si la clé API est absente ou en cas d'erreur.
+     */
+    public Optional<MatchResult> analyzeMatch(String cvText, String jobRequirements) {
+        if (apiKey == null || apiKey.isBlank()) {
+            log.warn("Claude API key absent — matching keyword-only utilisé en fallback.");
+            return Optional.empty();
+        }
+
+        // Tronquer les textes pour limiter les tokens (~4k chars max chacun)
+        String cv  = cvText      != null ? cvText.substring(0, Math.min(cvText.length(),      4000)) : "";
+        String job = jobRequirements != null
+                ? jobRequirements.substring(0, Math.min(jobRequirements.length(), 2000)) : "";
+
+        String prompt =
+            "Tu es un expert en recrutement. Évalue la correspondance entre ce CV et ce poste.\n\n"
+            + "=== CV DU CANDIDAT ===\n" + cv + "\n\n"
+            + "=== COMPÉTENCES ET DESCRIPTION DU POSTE ===\n" + job + "\n\n"
+            + "Réponds UNIQUEMENT avec un objet JSON valide, sans markdown, sans texte avant ou après :\n"
+            + "{\"score\": <entier 0-100>, \"explanation\": \"<1-2 phrases concises en français>\"}\n\n"
+            + "Barème :\n"
+            + "80-100 : compétences principales toutes présentes, profil idéal\n"
+            + "60-79  : bon match, quelques lacunes mineures\n"
+            + "40-59  : match partiel, lacunes notables\n"
+            + "0-39   : peu de correspondance";
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("x-api-key", apiKey);
+            headers.set("anthropic-version", "2023-06-01");
+
+            Map<String, Object> body = Map.of(
+                "model",      MODEL,
+                "max_tokens", 256,
+                "messages",   List.of(Map.of("role", "user", "content", prompt))
+            );
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            ResponseEntity<String> response = restTemplate.postForEntity(CLAUDE_API_URL, entity, String.class);
+
+            JsonNode root = objectMapper.readTree(response.getBody());
+            String text   = root.path("content").get(0).path("text").asText().trim();
+            text = text.replace("```json", "").replace("```", "").trim();
+
+            JsonNode json  = objectMapper.readTree(text);
+            double   score = json.path("score").asDouble(0);
+            String   expl  = json.path("explanation").asText("");
+
+            return Optional.of(new MatchResult(Math.min(100, Math.max(0, score)), expl));
+        } catch (Exception e) {
+            log.error("Échec de l'appel Claude pour analyzeMatch : {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    // ── Génération de questions d'onboarding ─────────────────────────────────
 
     public List<QuestionDto> generateCandidateQuestions(Map<String, String> initialAnswers) {
         String prompt = buildCandidatePrompt(initialAnswers);

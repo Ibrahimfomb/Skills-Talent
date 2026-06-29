@@ -53,7 +53,11 @@ public class OnboardingService {
             EmployerProfile profile = employerProfileRepositoryPort.findByUserId(userId)
                     .orElse(new EmployerProfile());
             profile.setUserId(userId);
-            profile.setCompanyName(init.getOrDefault("companyName", ""));
+            String companyName = init.getOrDefault("companyName", "");
+            profile.setCompanyName(companyName);
+            if (profile.getCompanySlug() == null || profile.getCompanySlug().isBlank()) {
+                profile.setCompanySlug(toSlug(companyName));
+            }
             profile.setIndustry(init.getOrDefault("industry", ""));
             profile.setCompanyCountry(init.getOrDefault("companyCountry", ""));
             profile.setCompanyCity(init.getOrDefault("companyCity", ""));
@@ -96,10 +100,17 @@ public class OnboardingService {
 
         user.setOnboardingCompleted(true);
         User saved = userRepositoryPort.saveUser(user);
-        String token = jwtUtil.generateToken(saved.getId());
+        String token = jwtUtil.generateToken(saved.getId(), saved.getRole().name());
 
-        return new AuthResponse(token, saved.getId(), saved.getEmail(),
-                saved.getFirstName(), saved.getLastName(), saved.getRole().toString(), true);
+        return AuthResponse.builder()
+                .token(token)
+                .id(saved.getId())
+                .email(saved.getEmail())
+                .firstName(saved.getFirstName())
+                .lastName(saved.getLastName())
+                .role(saved.getRole().toString())
+                .onboardingCompleted(true)
+                .build();
     }
 
     private String toJson(Map<String, String> map) {
@@ -108,5 +119,13 @@ public class OnboardingService {
         } catch (Exception e) {
             return "{}";
         }
+    }
+
+    static String toSlug(String name) {
+        if (name == null || name.isBlank()) return "company";
+        return name.trim().toLowerCase()
+            .replaceAll("[^a-z0-9\\s-]", "")
+            .replaceAll("\\s+", "-")
+            .replaceAll("-{2,}", "-");
     }
 }

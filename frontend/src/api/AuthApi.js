@@ -11,3 +11,17 @@ export const getProfile = (userId) =>
 
 export const updateProfile = (userId, data) =>
   axiosInstance.put(`/auth/profile/${userId}`, data).then((r) => r.data)
+
+// ── 2FA ──────────────────────────────────────────────────────────────────────
+
+export const setup2fa = () =>
+  axiosInstance.post('/auth/2fa/setup').then((r) => r.data)
+
+export const confirm2fa = (code) =>
+  axiosInstance.post('/auth/2fa/confirm', { code }).then((r) => r.data)
+
+export const verify2faLogin = (preAuthToken, code) =>
+  axiosInstance.post('/auth/2fa/verify-login', { preAuthToken, code }).then((r) => r.data)
+
+export const disable2fa = (code) =>
+  axiosInstance.delete('/auth/2fa/disable', { data: { code } }).then((r) => r.data)

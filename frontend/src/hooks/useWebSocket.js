@@ -1,29 +1,22 @@
-import { useEffect } from 'react';
+import { useEffect } from 'react'
+import { connecterWebSocket, deconnecterWebSocket } from '../services/websocketService'
 
-export const useWebSocket = (url) => {
+/**
+ * Hook React qui connecte/déconnecte automatiquement le WebSocket
+ * selon le cycle de vie du composant.
+ *
+ * @param {string|null}  userId      ID de l'utilisateur connecté
+ * @param {function}     onMessage   callback appelé à chaque message reçu
+ */
+export function useWebSocket(userId, onMessage) {
   useEffect(() => {
-    if (!url) return;
-    
-    const ws = new WebSocket(url);
-    
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-    };
-    
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-    
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-    };
-    
-    return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-    };
-  }, [url]);
-};
+    if (!userId) return
+    connecterWebSocket(userId, onMessage)
+    return () => deconnecterWebSocket()
+  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-export default useWebSocket;
+  // onMessage est intentionnellement exclu des deps : le service garde
+  // la dernière référence sans provoquer de reconnexion à chaque render.
+}
+
+export default useWebSocket

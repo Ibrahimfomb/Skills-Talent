@@ -33,6 +33,9 @@ public class Interview {
     
     @Column(name = "interview_link")
     private String interviewLink;
+
+    @Column(name = "calendly_link")
+    private String calendlyLink;
     
     @Column(name = "status")
     private String status;

@@ -10,6 +10,7 @@ import java.util.List;
 @Repository
 public interface InterviewRepository extends JpaRepository<Interview, String>, InterviewRepositoryPort {
     List<Interview> findByCandidateId(String candidateId);
+    void deleteByCandidateId(String candidateId);
     List<Interview> findByInterviewerId(String interviewerId);
     List<Interview> findByApplicationId(String applicationId);
 }

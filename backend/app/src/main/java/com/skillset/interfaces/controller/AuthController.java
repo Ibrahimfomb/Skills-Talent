@@ -5,6 +5,8 @@ import com.skillset.application.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -13,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+
+    // ── Inscription / Connexion ───────────────────────────────────────────────
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
@@ -24,16 +28,54 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    // ── Profil ────────────────────────────────────────────────────────────────
+
     @GetMapping("/profile/{userId}")
-    public ResponseEntity<UserDTO> getProfile(@PathVariable String userId) {
-        UserDTO dto = authService.getUserProfile(userId);
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal")
+    public ResponseEntity<UserDTO> getProfile(@AuthenticationPrincipal String currentUserId,
+                                              @PathVariable String userId) {
+        UserDTO dto = authService.getUserProfile(currentUserId, userId);
         return dto != null ? ResponseEntity.ok(dto) : ResponseEntity.notFound().build();
     }
 
     @PutMapping("/profile/{userId}")
-    public ResponseEntity<UserDTO> updateProfile(@PathVariable String userId,
-                                                  @RequestBody UserDTO details) {
-        UserDTO dto = authService.updateUser(userId, details);
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal")
+    public ResponseEntity<UserDTO> updateProfile(@AuthenticationPrincipal String currentUserId,
+                                                 @PathVariable String userId,
+                                                 @RequestBody UserDTO details) {
+        UserDTO dto = authService.updateUser(currentUserId, userId, details);
         return dto != null ? ResponseEntity.ok(dto) : ResponseEntity.notFound().build();
+    }
+
+    // ── 2FA — Configuration (utilisateur authentifié) ─────────────────────────
+
+    @PostMapping("/2fa/setup")
+    public ResponseEntity<TotpSetupResponse> setup2fa(
+            @AuthenticationPrincipal String currentUserId) {
+        return ResponseEntity.ok(authService.setup2fa(currentUserId));
+    }
+
+    @PostMapping("/2fa/confirm")
+    public ResponseEntity<Void> confirm2fa(
+            @AuthenticationPrincipal String currentUserId,
+            @RequestBody TotpCodeRequest request) {
+        authService.confirm2faSetup(currentUserId, request.getCode());
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/2fa/disable")
+    public ResponseEntity<Void> disable2fa(
+            @AuthenticationPrincipal String currentUserId,
+            @RequestBody TotpCodeRequest request) {
+        authService.disable2fa(currentUserId, request.getCode());
+        return ResponseEntity.ok().build();
+    }
+
+    // ── 2FA — Vérification au login (endpoint public, pre-auth token) ─────────
+
+    @PostMapping("/2fa/verify-login")
+    public ResponseEntity<AuthResponse> verifyTotpLogin(
+            @RequestBody TwoFactorLoginRequest request) {
+        return ResponseEntity.ok(authService.verifyTotpLogin(request));
     }
 }

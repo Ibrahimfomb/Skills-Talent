@@ -1,10 +1,12 @@
 package com.skillset.application.dto;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AuthResponse {
     private String token;
     private String id;
@@ -12,5 +14,7 @@ public class AuthResponse {
     private String firstName;
     private String lastName;
     private String role;
-    private boolean onboardingCompleted;
+    private Boolean onboardingCompleted;
+    private boolean twoFactorRequired;
+    private String preAuthToken;
 }

@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Plus, Building2,
-  MapPin, Globe, Users, Star, Save, Edit3, CheckCircle,
+  Building2, MapPin, Globe, Users, Star, Save, Edit3, CheckCircle, Link2, Copy,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/AuthStore'
 import { COMPANIES }    from '../../data/mockData'
@@ -36,8 +35,20 @@ export default function CompanyProfile() {
     email:       user?.email || '',
     phone:       '',
   })
-  const [saved, setSaved]     = useState(false)
-  const [editing, setEditing] = useState(false)
+  const [saved,    setSaved]    = useState(false)
+  const [editing,  setEditing]  = useState(false)
+  const [copied,   setCopied]   = useState(false)
+
+  const toSlug = (name) => (name || '').trim().toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-{2,}/g, '-') || 'company'
+
+  const publicUrl = `${window.location.origin}/careers/${toSlug(form.name)}`
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(publicUrl).then(() => {
+      setCopied(true); setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   const set = (key, val) => { setForm(prev => ({ ...prev, [key]: val })); setSaved(false) }
 
@@ -73,6 +84,17 @@ export default function CompanyProfile() {
               <button className="cp-edit-btn" onClick={() => setEditing(true)}><Edit3 size={15} /> Modifier</button>
             )}
           </div>
+        </div>
+
+        {/* ── Public careers URL ── */}
+        <div className="cp-careers-banner">
+          <Link2 size={15} />
+          <span className="cp-careers-label">Page carrière publique :</span>
+          <a href={publicUrl} target="_blank" rel="noreferrer" className="cp-careers-url">{publicUrl}</a>
+          <button className="cp-careers-copy" onClick={handleCopy} title="Copier le lien">
+            {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
+            {copied ? 'Copié !' : 'Copier'}
+          </button>
         </div>
 
         <div className="cp-layout">

@@ -10,4 +10,6 @@ import java.util.Optional;
 @Repository
 public interface EmployerProfileRepository extends JpaRepository<EmployerProfile, String>, EmployerProfileRepositoryPort {
     Optional<EmployerProfile> findByUserId(String userId);
+    Optional<EmployerProfile> findByCompanySlug(String companySlug);
+    void deleteByUserId(String userId);
 }

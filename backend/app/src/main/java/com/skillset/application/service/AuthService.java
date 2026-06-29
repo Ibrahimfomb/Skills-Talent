@@ -4,22 +4,36 @@ import com.skillset.application.dto.*;
 import com.skillset.domain.entity.User;
 import com.skillset.domain.entity.UserRole;
 import com.skillset.domain.port.UserRepositoryPort;
+import com.skillset.infrastructure.security.AuthorizationService;
 import com.skillset.infrastructure.security.JwtUtil;
+import dev.samstevens.totp.code.DefaultCodeVerifier;
+import dev.samstevens.totp.code.HashingAlgorithm;
+import dev.samstevens.totp.exceptions.QrGenerationException;
+import dev.samstevens.totp.qr.QrData;
+import dev.samstevens.totp.qr.ZxingPngQrGenerator;
+import dev.samstevens.totp.secret.SecretGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Base64;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepositoryPort userRepositoryPort;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
+    private final UserRepositoryPort   userRepositoryPort;
+    private final PasswordEncoder      passwordEncoder;
+    private final JwtUtil              jwtUtil;
+    private final AuthorizationService authorizationService;
+    private final SecretGenerator      secretGenerator;
+    private final ZxingPngQrGenerator  qrGenerator;
+    private final DefaultCodeVerifier  codeVerifier;
+
+    // ── Inscription ──────────────────────────────────────────────────────────
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepositoryPort.existsByEmail(request.getEmail())) {
@@ -36,12 +50,20 @@ public class AuthService {
         user.setTwoFactorEnabled(false);
 
         User saved = userRepositoryPort.saveUser(user);
-        String token = jwtUtil.generateToken(saved.getId());
+        String token = jwtUtil.generateToken(saved.getId(), saved.getRole().name());
 
-        return new AuthResponse(token, saved.getId(), saved.getEmail(),
-                saved.getFirstName(), saved.getLastName(), saved.getRole().toString(),
-                Boolean.TRUE.equals(saved.getOnboardingCompleted()));
+        return AuthResponse.builder()
+                .token(token)
+                .id(saved.getId())
+                .email(saved.getEmail())
+                .firstName(saved.getFirstName())
+                .lastName(saved.getLastName())
+                .role(saved.getRole().toString())
+                .onboardingCompleted(Boolean.TRUE.equals(saved.getOnboardingCompleted()))
+                .build();
     }
+
+    // ── Connexion ─────────────────────────────────────────────────────────────
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepositoryPort.findByEmail(request.getEmail())
@@ -56,19 +78,118 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Ce compte est désactivé.");
         }
 
-        String token = jwtUtil.generateToken(user.getId());
+        // 2FA activée : on retourne un token temporaire (pre-auth), pas encore le JWT complet
+        if (Boolean.TRUE.equals(user.getTwoFactorEnabled()) && user.getTwoFactorSecret() != null) {
+            return AuthResponse.builder()
+                    .twoFactorRequired(true)
+                    .preAuthToken(jwtUtil.generatePreAuthToken(user.getId()))
+                    .build();
+        }
 
-        return new AuthResponse(token, user.getId(), user.getEmail(),
-                user.getFirstName(), user.getLastName(), user.getRole().toString(),
-                Boolean.TRUE.equals(user.getOnboardingCompleted()));
+        return buildFullResponse(user);
     }
 
-    public UserDTO getUserProfile(String userId) {
+    // ── 2FA — Configuration ───────────────────────────────────────────────────
+
+    public TotpSetupResponse setup2fa(String userId) {
+        User user = findUser(userId);
+
+        if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "L'authentification à deux facteurs est déjà activée.");
+        }
+
+        String secret = secretGenerator.generate();
+        user.setTwoFactorSecret(secret);
+        userRepositoryPort.saveUser(user);
+
+        QrData qrData = new QrData.Builder()
+                .label(user.getEmail())
+                .secret(secret)
+                .issuer("SkillSet")
+                .algorithm(HashingAlgorithm.SHA1)
+                .digits(6)
+                .period(30)
+                .build();
+
+        try {
+            byte[] png = qrGenerator.generate(qrData);
+            String base64 = "data:image/png;base64," + Base64.getEncoder().encodeToString(png);
+            return new TotpSetupResponse(secret, qrData.getUri(), base64);
+        } catch (QrGenerationException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Erreur lors de la génération du QR code.");
+        }
+    }
+
+    public void confirm2faSetup(String userId, String code) {
+        User user = findUser(userId);
+
+        if (user.getTwoFactorSecret() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Initialisez d'abord la configuration 2FA (/2fa/setup).");
+        }
+        if (!codeVerifier.isValidCode(user.getTwoFactorSecret(), code)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Code invalide.");
+        }
+
+        user.setTwoFactorEnabled(true);
+        userRepositoryPort.saveUser(user);
+    }
+
+    // ── 2FA — Vérification au login ───────────────────────────────────────────
+
+    public AuthResponse verifyTotpLogin(TwoFactorLoginRequest request) {
+        String userId;
+        try {
+            userId = jwtUtil.getUserIdFromPreAuthToken(request.getPreAuthToken());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Token de pré-authentification invalide ou expiré.");
+        }
+
+        User user = findUser(userId);
+
+        if (!Boolean.TRUE.equals(user.getTwoFactorEnabled()) || user.getTwoFactorSecret() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La 2FA n'est pas activée sur ce compte.");
+        }
+        if (!codeVerifier.isValidCode(user.getTwoFactorSecret(), request.getCode())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Code invalide.");
+        }
+
+        return buildFullResponse(user);
+    }
+
+    // ── 2FA — Désactivation ───────────────────────────────────────────────────
+
+    public void disable2fa(String userId, String code) {
+        User user = findUser(userId);
+
+        if (!Boolean.TRUE.equals(user.getTwoFactorEnabled()) || user.getTwoFactorSecret() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La 2FA n'est pas activée sur ce compte.");
+        }
+        if (!codeVerifier.isValidCode(user.getTwoFactorSecret(), code)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Code invalide. La 2FA n'a pas été désactivée.");
+        }
+
+        user.setTwoFactorEnabled(false);
+        user.setTwoFactorSecret(null);
+        userRepositoryPort.saveUser(user);
+    }
+
+    // ── Profil utilisateur ────────────────────────────────────────────────────
+
+    public UserDTO getUserProfile(String currentUserId, String userId) {
+        authorizationService.requireSelfOrAdmin(currentUserId, userId);
         Optional<User> user = userRepositoryPort.findUserById(userId);
         return user.map(this::toDTO).orElse(null);
     }
 
-    public UserDTO updateUser(String userId, UserDTO details) {
+    public UserDTO updateUser(String currentUserId, String userId, UserDTO details) {
+        authorizationService.requireSelfOrAdmin(currentUserId, userId);
         return userRepositoryPort.findUserById(userId).map(user -> {
             user.setFirstName(details.getFirstName());
             user.setLastName(details.getLastName());
@@ -76,6 +197,25 @@ public class AuthService {
             user.setProfilePictureUrl(details.getProfilePictureUrl());
             return toDTO(userRepositoryPort.saveUser(user));
         }).orElse(null);
+    }
+
+    // ── Helpers privés ────────────────────────────────────────────────────────
+
+    private User findUser(String userId) {
+        return userRepositoryPort.findUserById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Utilisateur introuvable"));
+    }
+
+    private AuthResponse buildFullResponse(User user) {
+        return AuthResponse.builder()
+                .token(jwtUtil.generateToken(user.getId(), user.getRole().name()))
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole().toString())
+                .onboardingCompleted(Boolean.TRUE.equals(user.getOnboardingCompleted()))
+                .build();
     }
 
     private UserDTO toDTO(User user) {

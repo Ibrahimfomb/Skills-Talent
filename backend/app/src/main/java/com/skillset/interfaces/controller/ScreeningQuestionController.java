@@ -6,6 +6,8 @@ import com.skillset.domain.entity.ScreeningQuestion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,31 +17,38 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ScreeningQuestionController {
     private final ScreeningQuestionService screeningQuestionService;
-    
+
     @PostMapping
-    public ResponseEntity<ScreeningQuestion> createQuestion(@RequestBody ScreeningQuestion question) {
-        ScreeningQuestion createdQuestion = screeningQuestionService.createQuestion(question);
+    @PreAuthorize("hasRole('EMPLOYER')")
+    public ResponseEntity<ScreeningQuestion> createQuestion(@AuthenticationPrincipal String userId,
+                                                            @RequestBody ScreeningQuestion question) {
+        ScreeningQuestion createdQuestion = screeningQuestionService.createQuestion(userId, question);
         return new ResponseEntity<>(createdQuestion, HttpStatus.CREATED);
     }
-    
+
     @GetMapping("/job/{jobListingId}")
     public ResponseEntity<List<ScreeningQuestionDTO>> getJobQuestions(@PathVariable String jobListingId) {
         List<ScreeningQuestionDTO> questions = screeningQuestionService.getJobScreeningQuestions(jobListingId);
         return ResponseEntity.ok(questions);
     }
-    
+
     @PutMapping("/{questionId}")
-    public ResponseEntity<ScreeningQuestion> updateQuestion(@PathVariable String questionId, @RequestBody ScreeningQuestion questionDetails) {
-        ScreeningQuestion updatedQuestion = screeningQuestionService.updateQuestion(questionId, questionDetails);
+    @PreAuthorize("hasRole('EMPLOYER')")
+    public ResponseEntity<ScreeningQuestion> updateQuestion(@AuthenticationPrincipal String userId,
+                                                            @PathVariable String questionId,
+                                                            @RequestBody ScreeningQuestion questionDetails) {
+        ScreeningQuestion updatedQuestion = screeningQuestionService.updateQuestion(userId, questionId, questionDetails);
         if (updatedQuestion != null) {
             return ResponseEntity.ok(updatedQuestion);
         }
         return ResponseEntity.notFound().build();
     }
-    
+
     @DeleteMapping("/{questionId}")
-    public ResponseEntity<Void> deleteQuestion(@PathVariable String questionId) {
-        screeningQuestionService.deleteQuestion(questionId);
+    @PreAuthorize("hasRole('EMPLOYER')")
+    public ResponseEntity<Void> deleteQuestion(@AuthenticationPrincipal String userId,
+                                               @PathVariable String questionId) {
+        screeningQuestionService.deleteQuestion(userId, questionId);
         return ResponseEntity.noContent().build();
     }
 }

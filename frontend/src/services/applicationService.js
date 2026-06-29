@@ -8,8 +8,8 @@ export const applicationService = {
     axiosInstance.get(`/applications/job/${jobListingId}`),
   getApplicationById: (applicationId) => 
     axiosInstance.get(`/applications/${applicationId}`),
-  updateApplicationStatus: (applicationId, status) => 
-    axiosInstance.put(`/applications/${applicationId}/status`, null, { params: { status } }),
+  updateApplicationStatus: (applicationId, status) =>
+    axiosInstance.patch(`/applications/${applicationId}/status`, null, { params: { status } }),
 };
 
 export default applicationService;

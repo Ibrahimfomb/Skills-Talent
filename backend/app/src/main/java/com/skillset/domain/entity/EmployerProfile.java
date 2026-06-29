@@ -47,6 +47,9 @@ public class EmployerProfile {
     @Column(name = "company_linkedin")
     private String companyLinkedIn;
 
+    @Column(name = "company_slug", unique = true)
+    private String companySlug;
+
     @Column(name = "company_address")
     private String companyAddress;
 

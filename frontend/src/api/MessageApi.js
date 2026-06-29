@@ -8,3 +8,6 @@ export const getConversation = (userId1, userId2) =>
 
 export const getUnreadMessages = (userId) =>
   axiosInstance.get(`/messages/unread/${userId}`).then(r => r.data)
+
+export const markAsRead = (messageId) =>
+  axiosInstance.put(`/messages/${messageId}/read`).then(r => r.data)

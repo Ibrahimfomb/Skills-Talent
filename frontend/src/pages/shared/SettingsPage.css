@@ -387,8 +387,66 @@
   padding: 16px 0;
 }
 
+/* ─── Save button ───────────────────────────────────────── */
+.st-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  background: #c42033;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.st-save-btn:hover:not(:disabled) { background: #a01c2a; }
+.st-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ─── Preferences grid ──────────────────────────────────── */
+.st-pref-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.st-pref-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.st-pref-input {
+  padding: 9px 12px;
+  border: 1px solid #d4d2d0;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #2d2d2d;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.st-pref-input:focus { border-color: #c42033; }
+
+.st-spin {
+  animation: st-spin 0.8s linear infinite;
+}
+
+@keyframes st-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 @media (max-width: 768px) {
   .st-body { flex-direction: column; }
   .st-sidebar { width: 100%; min-height: auto; position: static; border-right: none; border-bottom: 1px solid #d4d2d0; }
   .st-content { padding: 20px 16px; }
+  .st-pref-grid { grid-template-columns: 1fr; }
 }

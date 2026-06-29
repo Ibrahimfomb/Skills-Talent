@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate, NavLink } from 'react-router-dom'
+import { useNavigate, NavLink, useLocation } from 'react-router-dom'
 import {
-  LayoutDashboard, Users, Briefcase, FileText, ShieldCheck,
+  LayoutDashboard, Users, Briefcase, FileText, ShieldCheck, BarChart2,
   LogOut, Bell, TrendingUp, CheckCircle, XCircle, Clock,
   CircleUser, Search, AlertTriangle, Activity, ChevronRight,
   Loader2,
@@ -42,6 +42,9 @@ function Sidebar({ onLogout }) {
         <NavLink to="/admin/moderation" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
           <ShieldCheck size={18} /> Modération
         </NavLink>
+        <NavLink to="/admin/analytics" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
+          <BarChart2 size={18} /> Analytics
+        </NavLink>
       </nav>
       <button className="ad-logout" onClick={onLogout}>
         <LogOut size={18} /> Déconnexion
@@ -50,11 +53,21 @@ function Sidebar({ onLogout }) {
   )
 }
 
+function pathToTab(pathname) {
+  if (pathname === '/admin/jobs')         return 'jobs'
+  if (pathname === '/admin/applications') return 'applications'
+  if (pathname === '/admin/moderation')   return 'moderation'
+  return 'users'
+}
+
 export default function AdminStats() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { user, logout } = useAuthStore()
   const [search, setSearch]             = useState('')
-  const [activeTab, setActiveTab]       = useState('users')
+  const [activeTab, setActiveTab]       = useState(() => pathToTab(pathname))
+
+  useEffect(() => { setActiveTab(pathToTab(pathname)) }, [pathname])
   const [stats, setStats]               = useState(null)
   const [users, setUsers]               = useState([])
   const [loading, setLoading]           = useState(true)
@@ -194,6 +207,12 @@ export default function AdminStats() {
               <button onClick={() => setActiveTab('jobs')} className={`ad-tab${activeTab === 'jobs' ? ' ad-tab--active' : ''}`}>
                 <Briefcase size={15} /> Offres
               </button>
+              <button onClick={() => setActiveTab('applications')} className={`ad-tab${activeTab === 'applications' ? ' ad-tab--active' : ''}`}>
+                <FileText size={15} /> Candidatures
+              </button>
+              <button onClick={() => setActiveTab('moderation')} className={`ad-tab${activeTab === 'moderation' ? ' ad-tab--active' : ''}`}>
+                <ShieldCheck size={15} /> Modération
+              </button>
             </div>
 
             {activeTab === 'users' && (
@@ -276,6 +295,22 @@ export default function AdminStats() {
               <div className="ad-empty">
                 <Briefcase size={40} className="ad-empty-icon" />
                 <p>Gestion des offres d&apos;emploi</p>
+                <span>Fonctionnalité en cours d&apos;implémentation</span>
+              </div>
+            )}
+
+            {activeTab === 'applications' && (
+              <div className="ad-empty">
+                <FileText size={40} className="ad-empty-icon" />
+                <p>Gestion des candidatures</p>
+                <span>Fonctionnalité en cours d&apos;implémentation</span>
+              </div>
+            )}
+
+            {activeTab === 'moderation' && (
+              <div className="ad-empty">
+                <ShieldCheck size={40} className="ad-empty-icon" />
+                <p>Panneau de modération</p>
                 <span>Fonctionnalité en cours d&apos;implémentation</span>
               </div>
             )}

@@ -1,13 +1,15 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Search, MapPin, SlidersHorizontal, X, ChevronDown,
-  Bookmark, BookmarkCheck, CheckCircle2, Send,
+  Bookmark, BookmarkCheck, CheckCircle2, Send, Upload, FileText,
 } from 'lucide-react'
-import { useUserDataStore }  from '../../store/UserDataStore'
-import AppNavbar             from '../../components/common/AppNavbar'
-import JobCard               from '../../features/job-board/JobCard'
-import { searchJobsMock }    from '../../api/JobApi'
+import { useUserDataStore }           from '../../store/UserDataStore'
+import { useAuthStore }               from '../../store/AuthStore'
+import AppNavbar                      from '../../components/common/AppNavbar'
+import JobCard                        from '../../features/job-board/JobCard'
+import { getJobs }                    from '../../api/JobApi'
+import { submitApplication }          from '../../api/ApplicationApi'
 import './JobSearch.css'
 
 const SECTORS        = ['Tech', 'Finance', 'Marketing', 'RH', 'Commercial', 'Design', 'Conseil', 'Énergie']
@@ -24,6 +26,7 @@ export default function JobSearch() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const { saveJob, unsaveJob, isJobSaved, applyToJob, hasApplied } = useUserDataStore()
+  const { user } = useAuthStore()
 
   const [query,       setQuery]       = useState(searchParams.get('q') || '')
   const [location,    setLocation]    = useState(searchParams.get('location') || '')
@@ -33,9 +36,15 @@ export default function JobSearch() {
   const [selected,    setSelected]    = useState(null)
   const [applyModal,  setApplyModal]  = useState(false)
   const [applied,     setApplied]     = useState(false)
+  const [coverLetter, setCoverLetter] = useState('')
+  const [cvFile,      setCvFile]      = useState(null)
+  const [submitting,  setSubmitting]  = useState(false)
+  const [submitError, setSubmitError] = useState(null)
+  const fileInputRef = useRef(null)
 
   const doSearch = useCallback((q = query, loc = location, f = filters) => {
-    searchJobsMock(q, loc, f).then(setResults)
+    getJobs({ q, location: loc, type: f.type, sector: f.sector, salaryMin: f.salaryMin, remote: f.remote, sort: f.sort })
+      .then(setResults)
     setSearchParams({ q, location: loc }, { replace: true })
   }, [query, location, filters, setSearchParams])
 
@@ -71,23 +80,35 @@ export default function JobSearch() {
     if (!selected) return
     if (hasApplied(selected.id)) return
     setApplied(false)
+    setCoverLetter('')
+    setCvFile(null)
+    setSubmitError(null)
     setApplyModal(true)
   }
 
-  // Confirm application
-  const confirmApply = () => {
-    if (!selected) return
-    applyToJob({
-      jobId: selected.id,
-      jobTitle: selected.title,
-      company: selected.company,
-      logo: selected.logo,
-      location: selected.location,
-      type: selected.type,
-      salary: `${(selected.salary.min / 1000).toFixed(0)}k – ${(selected.salary.max / 1000).toFixed(0)}k ${selected.salary.currency}`,
-    })
-    setApplied(true)
-    setTimeout(() => setApplyModal(false), 2000)
+  // Confirm application — appel API réel
+  const confirmApply = async () => {
+    if (!selected || submitting) return
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      await submitApplication(selected.id, coverLetter, cvFile)
+      applyToJob({
+        jobId:    selected.id,
+        jobTitle: selected.title,
+        company:  selected.company,
+        logo:     selected.logo,
+        location: selected.location,
+        type:     selected.type,
+        salary:   `${(selected.salary.min / 1000).toFixed(0)}k – ${(selected.salary.max / 1000).toFixed(0)}k ${selected.salary.currency}`,
+      })
+      setApplied(true)
+      setTimeout(() => setApplyModal(false), 2500)
+    } catch (err) {
+      setSubmitError(err?.response?.data?.message || 'Échec de la candidature. Réessayez.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -315,12 +336,55 @@ export default function JobSearch() {
                   </div>
                   <button className="js-modal-close" onClick={() => setApplyModal(false)}><X size={18} /></button>
                 </div>
-                <p className="js-modal-desc">
-                  Vous allez postuler avec votre profil SkillSet. L&apos;employeur recevra vos informations et vous contactera si votre candidature est retenue.
-                </p>
+
+                {/* Lettre de motivation */}
+                <div className="js-modal-field">
+                  <label className="js-modal-label">Lettre de motivation</label>
+                  <textarea
+                    className="js-modal-textarea"
+                    rows={4}
+                    placeholder="Présentez-vous et expliquez pourquoi ce poste vous correspond…"
+                    value={coverLetter}
+                    onChange={e => setCoverLetter(e.target.value)}
+                  />
+                </div>
+
+                {/* Upload CV */}
+                <div className="js-modal-field">
+                  <label className="js-modal-label">CV (PDF recommandé)</label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    style={{ display: 'none' }}
+                    onChange={e => setCvFile(e.target.files[0] || null)}
+                  />
+                  <button
+                    className="js-upload-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {cvFile
+                      ? <><FileText size={15} /> {cvFile.name}</>
+                      : <><Upload size={15} /> Choisir un fichier</>}
+                  </button>
+                  {cvFile && (
+                    <button className="js-remove-file" onClick={() => setCvFile(null)}>
+                      <X size={13} /> Retirer
+                    </button>
+                  )}
+                </div>
+
+                {submitError && <p className="js-modal-error">{submitError}</p>}
+
                 <div className="js-modal-actions">
-                  <button className="js-apply-btn" onClick={confirmApply}>
-                    <Send size={15} /> Confirmer ma candidature
+                  <button
+                    className="js-apply-btn"
+                    onClick={confirmApply}
+                    disabled={submitting}
+                  >
+                    {submitting
+                      ? 'Envoi en cours…'
+                      : <><Send size={15} /> Envoyer ma candidature</>}
                   </button>
                   <button className="js-modal-cancel" onClick={() => setApplyModal(false)}>Annuler</button>
                 </div>

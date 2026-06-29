@@ -36,6 +36,9 @@ public class Application {
     
     @Column(name = "match_score")
     private Double matchScore;
+
+    @Column(name = "match_explanation", columnDefinition = "TEXT")
+    private String matchExplanation;
     
     @Column(name = "applied_at", nullable = false)
     private LocalDateTime appliedAt = LocalDateTime.now();

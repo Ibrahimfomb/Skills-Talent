@@ -319,6 +319,58 @@
 .js-modal-success h3 { font-size: 20px; font-weight: 700; color: #1a1a1a; margin: 0 0 10px; }
 .js-modal-success p { font-size: 14px; color: #555; margin: 0 0 6px; line-height: 1.5; }
 
+/* ─── Modal — champs candidature ─────────────────────────────── */
+.js-modal-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.js-modal-label { font-size: 13px; font-weight: 600; color: #444; }
+.js-modal-textarea {
+  resize: vertical;
+  min-height: 90px;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #222;
+  font-family: inherit;
+  transition: border-color .15s;
+}
+.js-modal-textarea:focus { outline: none; border-color: #c42033; }
+.js-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1.5px dashed #c0c0c0;
+  border-radius: 8px;
+  background: #fafafa;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+  width: fit-content;
+}
+.js-upload-btn:hover { border-color: #c42033; color: #c42033; }
+.js-remove-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  font-size: 12px;
+  color: #999;
+  cursor: pointer;
+}
+.js-remove-file:hover { color: #c42033; }
+.js-modal-error {
+  font-size: 13px;
+  color: #c42033;
+  background: #fff0f2;
+  border: 1px solid #ffd0d5;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
 /* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 960px) {
   .js-detail { display: none; }

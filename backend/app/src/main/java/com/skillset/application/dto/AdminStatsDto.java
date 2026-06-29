@@ -46,4 +46,20 @@ public class AdminStatsDto {
         private String type;
         private String time;
     }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class JobSummary {
+        private String id;
+        private String title;
+        private String companyId;
+        private String location;
+        private String jobType;
+        private String status;
+        private String postedAt;
+        private String expiresAt;
+        private long applicationCount;
+    }
 }

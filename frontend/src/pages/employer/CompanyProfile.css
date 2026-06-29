@@ -1,3 +1,19 @@
+/* ── Careers URL banner ─────────────────────────────────────────── */
+.cp-careers-banner {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: #e8f0ff; border: 1px solid #c7d9ff; border-radius: 10px;
+  padding: 10px 16px; margin-bottom: 24px; font-size: 13px; color: #2b4fbf;
+}
+.cp-careers-label { font-weight: 700; white-space: nowrap; }
+.cp-careers-url   { color: #2b4fbf; text-decoration: none; word-break: break-all; flex: 1; }
+.cp-careers-url:hover { text-decoration: underline; }
+.cp-careers-copy {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+  background: #2b4fbf; color: #fff; border: none; border-radius: 6px;
+  font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.cp-careers-copy:hover { background: #1f3a8a; }
+
 .cp-shell { min-height: 100vh; background: #fafafa; position: relative; overflow-x: hidden; }
 .cp-blob { position: fixed; border-radius: 50%; pointer-events: none; z-index: 0; }
 .cp-blob--main   { width: 500px; height: 500px; background: radial-gradient(circle, rgba(196,32,51,0.07) 0%, transparent 68%); top: -100px; right: -80px; }

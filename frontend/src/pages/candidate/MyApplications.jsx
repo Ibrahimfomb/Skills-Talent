@@ -207,6 +207,22 @@ export default function MyApplications() {
                     </div>
                   </div>
                 </div>
+                {itv.calendlyLink && (
+                  <div style={{ padding: '10px 16px', borderTop: '1px solid #f0f0f0' }}>
+                    <a
+                      href={itv.calendlyLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '7px 14px', background: '#6366f1', color: '#fff',
+                        borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                      }}
+                    >
+                      📅 Confirmer via Calendly
+                    </a>
+                  </div>
+                )}
                 {itv.notes && (
                   <div className="ma-itv-notes">
                     <p className="ma-itv-notes-label">Notes de préparation</p>

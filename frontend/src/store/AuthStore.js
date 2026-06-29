@@ -20,6 +20,12 @@ export const useAuthStore = create((set) => ({
     set({ user: null, isAuthenticated: false, initialized: true })
   },
 
+  updateUser: (updates) => set((state) => {
+    const updatedUser = { ...state.user, ...updates }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser))
+    return { user: updatedUser }
+  }),
+
   // Called on app mount — must complete before ProtectedRoute evaluates
   loadFromStorage: () => {
     try {

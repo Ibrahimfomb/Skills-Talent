@@ -177,3 +177,30 @@ CREATE INDEX idx_notifications_user_id ON notifications(user_id);
 
 -- Grant permissions (if needed)
 -- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
+
+-- RGPD : Consentements utilisateurs
+CREATE TABLE IF NOT EXISTS consent_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    consent_type VARCHAR(50) NOT NULL,
+    accepted BOOLEAN NOT NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    consented_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    revoked_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_consent_records_user_id ON consent_records(user_id);
+
+-- RGPD : Demandes d'export et suppression
+CREATE TABLE IF NOT EXISTS gdpr_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    request_type VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    requested_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMP,
+    download_url TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_gdpr_requests_user_id ON gdpr_requests(user_id);

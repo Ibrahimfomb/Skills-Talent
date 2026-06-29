@@ -3,6 +3,8 @@ package com.skillset.infrastructure.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -17,6 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 
 @Configuration
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -63,11 +66,20 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/auth/register",
                     "/api/auth/login",
+                    "/api/auth/2fa/verify-login",
                     "/api/onboarding/generate-questions",
                     "/api/public/**",
                     "/health",
                     "/"
                 ).permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/jobs").hasRole("EMPLOYER")
+                .requestMatchers(HttpMethod.PUT, "/api/jobs/**").hasRole("EMPLOYER")
+                .requestMatchers(HttpMethod.POST, "/api/applications").hasRole("CANDIDATE")
+                .requestMatchers(HttpMethod.POST, "/api/interviews").hasRole("EMPLOYER")
+                .requestMatchers(HttpMethod.POST, "/api/screening-questions").hasRole("EMPLOYER")
+                .requestMatchers(HttpMethod.PUT, "/api/screening-questions/**").hasRole("EMPLOYER")
+                .requestMatchers(HttpMethod.DELETE, "/api/screening-questions/**").hasRole("EMPLOYER")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(new JwtFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);

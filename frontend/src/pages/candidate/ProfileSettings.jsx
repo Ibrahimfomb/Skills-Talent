@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, NavLink } from 'react-router-dom'
 import {
   Mail, Phone, MapPin, ChevronRight, ChevronDown,
-  Save, CheckCircle, Upload,
+  Save, CheckCircle, Upload, CircleUser,
 } from 'lucide-react'
-import { useAuthStore } from '../../store/AuthStore'
-import AppNavbar        from '../../components/common/AppNavbar'
+import { useAuthStore }  from '../../store/AuthStore'
+import { updateProfile } from '../../api/AuthApi'
+import AppNavbar         from '../../components/common/AppNavbar'
 import './ProfileSettings.css'
 
 const ACCORDIONS = [
@@ -17,7 +18,7 @@ const ACCORDIONS = [
 
 export default function ProfileSettings() {
   const navigate = useNavigate()
-  const { user } = useAuthStore()
+  const { user, updateUser } = useAuthStore()
   const [saved, setSaved] = useState(false)
   const [openAccordion, setOpenAccordion] = useState(null)
   const [visible, setVisible]       = useState(true)
@@ -40,6 +41,14 @@ export default function ProfileSettings() {
 
   const handleSave = (e) => {
     e.preventDefault()
+    updateUser({ firstName: form.firstName, lastName: form.lastName, phoneNumber: form.phone })
+    if (user?.id) {
+      updateProfile(user.id, {
+        firstName: form.firstName,
+        lastName:  form.lastName,
+        phoneNumber: form.phone,
+      }).catch(() => {})
+    }
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
