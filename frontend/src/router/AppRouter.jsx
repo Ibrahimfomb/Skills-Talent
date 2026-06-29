@@ -29,6 +29,8 @@ import ProtectedRoute         from './ProtectedRoute'
 import RoleGuard              from './RoleGuard'
 import TalentPoolList         from '../features/talentpool/TalentPoolList'
 import TalentPoolDetail       from '../features/talentpool/TalentPoolDetail'
+import IntegrationsPage       from '../features/integrations/IntegrationsPage'
+import GoogleAuthCallback     from '../features/integrations/GoogleAuthCallback'
 
 const NO_STELLA_ROUTES = ['/login', '/register', '/onboarding']
 
@@ -111,6 +113,14 @@ const AppRouter = () => (
       } />
       <Route path="/settings" element={
         <ProtectedRoute><SettingsPage /></ProtectedRoute>
+      } />
+      <Route path="/settings/integrations" element={
+        <ProtectedRoute><IntegrationsPage /></ProtectedRoute>
+      } />
+
+      {/* ── OAuth Callbacks ── */}
+      <Route path="/oauth/callback/google" element={
+        <ProtectedRoute><GoogleAuthCallback /></ProtectedRoute>
       } />
 
       {/* ── Admin ── */}

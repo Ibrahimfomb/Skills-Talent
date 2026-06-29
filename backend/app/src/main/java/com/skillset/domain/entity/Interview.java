@@ -51,4 +51,10 @@ public class Interview {
     
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @Column(name = "google_event_id")
+    private String googleEventId;
+
+    @Column(name = "calendar_sync_status")
+    private String calendarSyncStatus;
 }

@@ -62,5 +62,14 @@ public class JobListing {
     
     @OneToMany(mappedBy = "jobListing", cascade = CascadeType.ALL)
     private List<ScreeningQuestion> screeningQuestions;
+
+    @Column(name = "france_travail_id")
+    private String franceTravailId;
+
+    @Column(name = "published_on_france_travail")
+    private Boolean publishedOnFranceTravail = false;
+
+    @Column(name = "france_travail_url")
+    private String franceTravailUrl;
 }
 
