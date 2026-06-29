@@ -9,6 +9,7 @@ import { useAuthStore }       from '../../store/AuthStore'
 import { JOBS }               from '../../data/mockData'
 import AppNavbar              from '../../components/common/AppNavbar'
 import AutomationRulesPanel   from '../../features/automation/AutomationRulesPanel'
+import TalentPoolsPanel       from '../../features/talentpool/TalentPoolList'
 import './EmployerDashboard.css'
 
 function DonutChart({ pct = 0 }) {
@@ -349,6 +350,12 @@ export default function EmployerDashboard() {
           {/* Règles d'automatisation */}
           <div className="ed-section">
             <AutomationRulesPanel />
+          </div>
+
+          {/* Viviers de talents */}
+          <div className="ed-section">
+            <p className="ed-section-title">Viviers de talents</p>
+            <TalentPoolsPanel />
           </div>
 
         </div>

@@ -27,6 +27,8 @@ import NotificationListener   from '../features/notifications/NotificationListen
 import ConsentBanner          from '../features/consent/ConsentBanner'
 import ProtectedRoute         from './ProtectedRoute'
 import RoleGuard              from './RoleGuard'
+import TalentPoolList         from '../features/talentpool/TalentPoolList'
+import TalentPoolDetail       from '../features/talentpool/TalentPoolDetail'
 
 const NO_STELLA_ROUTES = ['/login', '/register', '/onboarding']
 
@@ -92,6 +94,12 @@ const AppRouter = () => (
       } />
       <Route path="/employer/company" element={
         <ProtectedRoute><RoleGuard roles={['EMPLOYER']}><CompanyProfile /></RoleGuard></ProtectedRoute>
+      } />
+      <Route path="/employer/talent-pools" element={
+        <ProtectedRoute><RoleGuard roles={['EMPLOYER']}><TalentPoolList /></RoleGuard></ProtectedRoute>
+      } />
+      <Route path="/employer/talent-pools/:poolId" element={
+        <ProtectedRoute><RoleGuard roles={['EMPLOYER']}><TalentPoolDetail /></RoleGuard></ProtectedRoute>
       } />
 
       {/* ── Shared ── */}

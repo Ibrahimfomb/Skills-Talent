@@ -7,6 +7,7 @@ import AppNavbar                   from '../../components/common/AppNavbar'
 import MatchScoreBadge             from '../../features/matching/MatchScoreBadge'
 import ReviewPanel                 from '../../features/reviews/ReviewPanel'
 import BulkStatusModal             from '../../features/automation/BulkStatusModal'
+import AddToPoolButton             from '../../features/talentpool/AddToPoolButton'
 import { getEmployerApplications, updateApplicationStatus } from '../../api/ApplicationApi'
 import './CandidateReview.css'
 
@@ -37,13 +38,18 @@ function KanbanCard({ c, idx, onSelect, isSelected, onToggle }) {
           <div className="kb-card-top">
             <div className="kb-avatar">{c.initials}</div>
             <div className="kb-name">{c.name || 'Candidat anonyme'}</div>
-            <input
-              type="checkbox"
-              className="kb-card-check"
-              checked={isSelected}
-              onClick={e => e.stopPropagation()}
-              onChange={e => { e.stopPropagation(); onToggle(c.id) }}
-            />
+            <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto', alignItems: 'center' }}>
+              {c.candidateId && (
+                <AddToPoolButton candidateId={c.candidateId} onSuccess={() => {}} />
+              )}
+              <input
+                type="checkbox"
+                className="kb-card-check"
+                checked={isSelected}
+                onClick={e => e.stopPropagation()}
+                onChange={e => { e.stopPropagation(); onToggle(c.id) }}
+              />
+            </div>
           </div>
           <div className="kb-job" title={c.jobTitle}>{c.jobTitle}</div>
           <div className="kb-card-footer">
@@ -120,6 +126,7 @@ export default function CandidateReview() {
       .then(dtos => {
         setCards(dtos.map(dto => ({
           id:            dto.id,
+          candidateId:   dto.candidateId || dto.jobSeekerId,
           name:          dto.candidateName,
           initials:      initials(dto.candidateName),
           jobTitle:      dto.jobTitle,

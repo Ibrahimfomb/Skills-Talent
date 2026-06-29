@@ -148,4 +148,18 @@ public class EmailUtil {
         );
         mailSender.send(message);
     }
+
+    public void sendAddedToTalentPoolEmail(String to, String firstName, String poolName, String companyName) {
+        if (mailSender == null) return;
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Vous avez été ajouté au vivier de talents de " + companyName);
+        message.setText(
+            "Bonjour " + firstName + ",\n\n" +
+            "Vous avez été sélectionné pour rejoindre le vivier de talents \"" + poolName + "\" chez " + companyName + ".\n\n" +
+            "Cordialement,\n" +
+            "L'équipe de recrutement"
+        );
+        mailSender.send(message);
+    }
 }
