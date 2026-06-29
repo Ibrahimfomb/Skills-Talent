@@ -45,6 +45,7 @@ class ApplicationServiceTest {
     @Mock CVParserUtil               cvParserUtil;
     @Mock CloudinaryService          cloudinaryService;
     @Mock ClaudeApiService           claudeApiService;
+    @Mock NotificationPushService    notificationPushService;
 
     @InjectMocks ApplicationService applicationService;
 
@@ -215,6 +216,7 @@ class ApplicationServiceTest {
             doNothing().when(authorizationService).requireApplicationAccess("candidate-1", app);
             when(applicationRepositoryPort.save(app)).thenReturn(app);
             when(userRepositoryPort.findUserById("candidate-1")).thenReturn(Optional.of(candidateUser()));
+            doNothing().when(notificationPushService).push(anyString(), anyString(), anyString(), anyString(), anyString());
 
             ApplicationDTO result = applicationService.updateStatus("candidate-1", "app-1", "INTERVIEW");
 
