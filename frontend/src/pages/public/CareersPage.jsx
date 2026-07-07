@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  MapPin, Users, Globe,
-  //Linkedin, Briefcase,
+  MapPin, Users, Globe, ExternalLink,
   ChevronRight, X, Upload, Loader2, CheckCircle, AlertTriangle,
 } from 'lucide-react'
 import { getCareerPage } from '../../api/PublicApi'
@@ -174,7 +173,7 @@ export default function CareersPage() {
               )}
               {company.companyLinkedIn && (
                 <a href={company.companyLinkedIn} target="_blank" rel="noreferrer" className="cp-link">
-                  <Linkedin size={13} /> LinkedIn
+                  <ExternalLink size={13} /> LinkedIn
                 </a>
               )}
             </div>

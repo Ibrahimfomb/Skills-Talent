@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Github } from 'lucide-react'
+import { Mail, Phone, MapPin, Share2, MessageCircle, Link, Code2 } from 'lucide-react'
 
 const Footer = () => {
   const currentYear = new Date().getFullYear()
@@ -21,16 +21,16 @@ const Footer = () => {
             </p>
             <div className="flex items-center gap-4">
               <a href="#facebook" aria-label="Facebook" className="text-gray-400 hover:text-cherry-600 transition">
-                <Facebook size={20} />
+                <Share2 size={20} />
               </a>
               <a href="#twitter" aria-label="Twitter" className="text-gray-400 hover:text-cherry-600 transition">
-                <Twitter size={20} />
+                <MessageCircle size={20} />
               </a>
               <a href="#linkedin" aria-label="LinkedIn" className="text-gray-400 hover:text-cherry-600 transition">
-                <Linkedin size={20} />
+                <Link size={20} />
               </a>
               <a href="#github" aria-label="GitHub" className="text-gray-400 hover:text-cherry-600 transition">
-                <Github size={20} />
+                <Code2 size={20} />
               </a>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  MessageSquare,
+  MessageSquare, Search,
   CheckCheck, Trash2, Briefcase, CalendarCheck, Zap, Star,
 } from 'lucide-react'
 import { useAuthStore }         from '../../store/AuthStore'
