@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn spring-boot:run)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(curl -s -X POST http://localhost:9090/api/auth/register -H 'Content-Type: application/json' -H 'Origin: http://localhost:5173' -d '{\"email\":\"test@example.com\",\"password\":\"Pass123!\",\"firstName\":\"Test\",\"lastName\":\"User\",\"role\":\"CANDIDATE\"}')",
+      "Bash(curl -s -X POST http://localhost:8080/api/auth/register -H 'Content-Type: application/json' -H 'Origin: http://localhost:5173' -d '{\"email\":\"alice@test.com\",\"password\":\"Pass123!\",\"firstName\":\"Alice\",\"lastName\":\"Smith\",\"role\":\"CANDIDATE\"}')",
+      "Bash(curl -s -X POST http://localhost:8080/api/auth/register -H 'Content-Type: application/json' -H 'Origin: http://localhost:5173' -d '{\"email\":\"bob@test.com\",\"password\":\"Pass123!\",\"firstName\":\"Bob\",\"lastName\":\"Jones\",\"role\":\"CANDIDATE\"}')",
+      "Bash(curl -s -X POST http://localhost:8080/api/auth/register -H 'Content-Type: application/json' -H 'Origin: http://localhost:5173' -d '{\"email\":\"claire@test.com\",\"password\":\"Pass123!\",\"firstName\":\"Claire\",\"lastName\":\"Wilson\",\"role\":\"CANDIDATE\"}')",
+      "Bash(npx tailwindcss *)",
+      "Bash(./node_modules/.bin/tailwindcss init *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(curl -s http://localhost:5173/login)",
+      "Bash(curl -I http://localhost:5173)"
+    ]
+  }
+}
