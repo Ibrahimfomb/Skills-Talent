@@ -13,12 +13,19 @@ export const disconnectGoogle = () =>
 export const confirmGoogleAuth = (code) =>
   axiosInstance.post('/integrations/google/callback', { code }).then(r => r.data)
 
-// France Travail Integration
+// Job Board Integration — Multi-Regional Publishing
+export const publishToJobBoards = (jobId, targetCountries) =>
+  axiosInstance.post(`/jobboards/publish/${jobId}`, { targetCountries }).then(r => r.data)
+
+export const unpublishFromJobBoards = (jobId) =>
+  axiosInstance.delete(`/jobboards/unpublish/${jobId}`).then(r => r.data)
+
+// Legacy France Travail Integration (backward compatibility)
 export const publishToFranceTravail = (jobId) =>
-  axiosInstance.post(`/jobboards/france-travail/publish/${jobId}`).then(r => r.data)
+  publishToJobBoards(jobId, ['FR'])
 
 export const unpublishFromFranceTravail = (jobId) =>
-  axiosInstance.delete(`/jobboards/france-travail/unpublish/${jobId}`).then(r => r.data)
+  unpublishFromJobBoards(jobId)
 
 export const getFranceTravailStatus = (jobId) =>
   axiosInstance.get(`/jobboards/france-travail/status/${jobId}`).then(r => r.data)

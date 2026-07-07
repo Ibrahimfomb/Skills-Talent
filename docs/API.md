@@ -150,6 +150,67 @@ Authorization: Bearer <jwt_token>
 - **PUT** `/interviews/{interviewId}/feedback?notes=<notes>&rating=<rating>`
 - **Response**: Updated Interview
 
+### Job Board Integration (`/jobboards`)
+
+#### Publish Job to Multiple Job Boards
+- **POST** `/jobboards/publish/{jobId}`
+- **Auth**: EMPLOYER role required
+- **Body**:
+  ```json
+  {
+    "targetCountries": ["CM", "FR", "SN"]
+  }
+  ```
+- **Response** (201 Created):
+  ```json
+  {
+    "jobId": "job-uuid",
+    "timestamp": "2024-01-15T10:30:00",
+    "successCount": 3,
+    "failureCount": 0,
+    "totalCount": 3,
+    "results": [
+      {
+        "partner": "BRIGHTERMONDAY",
+        "status": "PUBLISHED",
+        "externalId": "bm-12345",
+        "externalUrl": "https://www.brightermonday.com/jobs/bm-12345"
+      },
+      {
+        "partner": "FRANCE_TRAVAIL",
+        "status": "PUBLISHED",
+        "externalId": "ft-67890",
+        "externalUrl": "https://www.francetravail.fr/offres/ft-67890"
+      },
+      {
+        "partner": "LINKEDIN",
+        "status": "PUBLISHED",
+        "externalId": "li-abcde",
+        "externalUrl": "https://www.linkedin.com/jobs/view/li-abcde"
+      }
+    ]
+  }
+  ```
+
+#### Unpublish Job from All Job Boards
+- **DELETE** `/jobboards/unpublish/{jobId}`
+- **Auth**: EMPLOYER role required, must be job owner
+- **Response** (200 OK): Same structure as publish endpoint
+
+**Supported Countries & Job Boards:**
+
+| Country | Code | Job Boards |
+|---------|------|-----------|
+| France | FR | France Travail, LinkedIn |
+| Cameroon | CM | BrighterMonday, LinkedIn, Jobartisan |
+| Senegal | SN | BrighterMonday, LinkedIn |
+| Côte d'Ivoire | CI | BrighterMonday, LinkedIn |
+| Nigeria | NG | BrighterMonday, LinkedIn |
+| Kenya | KE | BrighterMonday, LinkedIn |
+| Other | * | LinkedIn (fallback) |
+
+For more details on job board integrations, see [JOB_BOARD_INTEGRATION.md](./JOB_BOARD_INTEGRATION.md).
+
 ## Status Codes
 
 - `200 OK`: Successful GET request
