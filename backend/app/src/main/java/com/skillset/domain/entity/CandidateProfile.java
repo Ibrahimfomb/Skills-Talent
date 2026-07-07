@@ -40,6 +40,12 @@ public class CandidateProfile {
     @Column(name = "wants_cv", nullable = false)
     private Boolean wantsCv = false;
 
+    @Column(name = "cv_url")
+    private String cvUrl;
+
+    @Column(name = "preferred_currency")
+    private String preferredCurrency;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

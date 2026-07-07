@@ -72,6 +72,9 @@ public class SecurityConfig {
                     "/health",
                     "/"
                 ).permitAll()
+                .requestMatchers("/api/onboarding/next-question", "/api/onboarding/context").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/onboarding/generate-cv").hasRole("CANDIDATE")
+                .requestMatchers(HttpMethod.POST, "/api/onboarding/extract-filters").authenticated()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/jobs").hasRole("EMPLOYER")
                 .requestMatchers(HttpMethod.PUT, "/api/jobs/**").hasRole("EMPLOYER")

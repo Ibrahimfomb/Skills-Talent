@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/AuthStore'
+import { useOnboardingAiStore } from '../../store/onboardingAiStore'
 import { generateQuestions, completeOnboarding } from '../../api/OnboardingApi'
 import { ChevronRight, ChevronLeft, FileText, CheckCircle2, X } from 'lucide-react'
 import MapPicker from '../../components/MapPicker'
 import StellaLoader from '../../components/StellaLoader'
+import AiQuestionCard from '../../features/onboarding/AiQuestionCard'
+import PhaseIndicator from '../../features/onboarding/PhaseIndicator'
+import CvGenerationScreen from '../../features/onboarding/CvGenerationScreen'
 import { getJobsForDomain } from '../../data/domainJobs'
 import './OnboardingPage.css'
 
@@ -282,7 +286,7 @@ function SearchableChoiceCard({ question, value, onChange }) {
   )
 }
 
-/* ─── Country + City combined ───────────────────────────────────── */
+/* ─── Country + City combined (IMPROVED for dynamic adaptation) ───────────────────────────────────── */
 function CountryCityCard({ question, answers, onChange }) {
   const countryVal = answers[question.countryId] || ''
   const cityVal    = answers[question.cityId]    || ''
@@ -322,9 +326,13 @@ function CountryCityCard({ question, answers, onChange }) {
   }
 
   const handleCountrySelect = (c) => {
-    onChange(question.countryId, c.code === '' ? (cSearch || 'Autre') : c.name)
+    const countryName = c.code === '' ? (cSearch || 'Autre') : c.name
+    onChange(question.countryId, countryName)
     onChange(question.cityId, '') // reset city when country changes
-    setCSearch(''); setCOpen(false)
+    setCSearch('');
+    setCOpen(false)
+    setCityInput('') // Clear city input
+    setCitySugs([])
   }
 
   const handleCityInput = (e) => {
@@ -332,13 +340,18 @@ function CountryCityCard({ question, answers, onChange }) {
     setCityInput(val)
     onChange(question.cityId, val)
     clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => fetchCities(val), 380)
+    if (val.length >= 2) {
+      debounceRef.current = setTimeout(() => fetchCities(val), 380)
+    } else {
+      setCitySugs([])
+    }
   }
 
   const handleCitySelect = (city) => {
     setCityInput(city)
     onChange(question.cityId, city)
-    setCitySugs([]); setCityOpen(false)
+    setCitySugs([]);
+    setCityOpen(false)
   }
 
   return (
@@ -351,7 +364,7 @@ function CountryCityCard({ question, answers, onChange }) {
         {countryVal ? (
           <div className="ob-selected-chip ob-selected-chip--inline">
             <span>{countryVal}</span>
-            <button type="button" onClick={() => { onChange(question.countryId, ''); onChange(question.cityId, '') }} aria-label="Changer de pays"><X size={13} /></button>
+            <button type="button" onClick={() => { onChange(question.countryId, ''); onChange(question.cityId, ''); setCityInput(''); setCitySugs([]); }} aria-label="Changer de pays"><X size={13} /></button>
           </div>
         ) : (
           <div className="ob-dropdown-container ob-dropdown-container--flex">
@@ -390,7 +403,7 @@ function CountryCityCard({ question, answers, onChange }) {
               onChange={handleCityInput}
               onBlur={() => setTimeout(() => setCityOpen(false), 200)}
               onFocus={() => citySugs.length > 0 && setCityOpen(true)}
-              placeholder={`Ville au ${countryVal}…`}
+              placeholder={`Saisir une ville…`}
             />
             {cityOpen && citySugs.length > 0 && (
               <div className="ob-dropdown">
@@ -544,6 +557,21 @@ export default function OnboardingPage() {
   const { user, setAuth } = useAuthStore()
   const role = user?.role || 'CANDIDATE'
 
+  // AI Store
+  const {
+    currentQuestion,
+    previousAnswers,
+    context,
+    isComplete: aiComplete,
+    isLoading: aiLoading,
+    cvUrl,
+    error: aiError,
+    submitAnswer: aiSubmitAnswer,
+    generateCv,
+    initializeOnboarding,
+    resetOnboarding,
+  } = useOnboardingAiStore()
+
   useEffect(() => {
     if (user?.onboardingCompleted) {
       navigate(ROLE_ROUTES[role] ?? '/dashboard/candidate', { replace: true })
@@ -551,12 +579,11 @@ export default function OnboardingPage() {
   }, [user, role, navigate])
 
   const totalSteps = role === 'CANDIDATE' ? 4 : 3
-  const [step, setStep]                 = useState('initial')
+  const [step, setStep] = useState('initial')
   const [initialAnswers, setInitialAnswers] = useState({})
-  const [aiQuestions, setAiQuestions]   = useState([])
-  const [aiAnswers, setAiAnswers]       = useState({})
-  const [error, setError]               = useState('')
-  const [submitting, setSubmitting]     = useState(false)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [aiAnswerState, setAiAnswerState] = useState('') // temp state for current AI question
 
   const initialQuestions = role === 'EMPLOYER'
     ? getEmployerInitialQuestions(initialAnswers)
@@ -566,15 +593,11 @@ export default function OnboardingPage() {
     if (bank === 'initial') {
       setInitialAnswers(prev => {
         const next = { ...prev, [id]: val }
-        // reset city when country changes
-        if (id === 'companyCountry'   && prev.companyCountry   !== val) next.companyCity    = ''
-        if (id === 'candidateCountry' && prev.candidateCountry !== val) next.candidateCity  = ''
-        // reset role list when domain changes
+        if (id === 'companyCountry' && prev.companyCountry !== val) next.companyCity = ''
+        if (id === 'candidateCountry' && prev.candidateCountry !== val) next.candidateCity = ''
         if (id === 'domain' && prev.domain !== val) next.desiredRole = ''
         return next
       })
-    } else {
-      setAiAnswers(prev => ({ ...prev, [id]: val }))
     }
   }
 
@@ -584,17 +607,10 @@ export default function OnboardingPage() {
       .every(q => {
         if (q.type === 'country_city') {
           return initialAnswers[q.countryId] && String(initialAnswers[q.countryId]).trim()
-          // city is optional (country alone is enough)
         }
         const val = initialAnswers[q.id]
         return val && String(val).trim() !== ''
       })
-
-  const isAiComplete = () =>
-    aiQuestions.every(q => {
-      const val = aiAnswers[q.id]
-      return val && String(val).trim() !== ''
-    })
 
   const handleInitialNext = async () => {
     if (!isInitialComplete()) {
@@ -602,44 +618,82 @@ export default function OnboardingPage() {
       return
     }
     setError('')
-    setStep('loading')
-    try {
-      const data = await generateQuestions(role, initialAnswers)
-      setAiQuestions(data.questions || [])
-      setStep('ai')
-    } catch {
-      setError("Impossible de générer les questions. Veuillez réessayer.")
-      setStep('initial')
+    setStep('ai-init')
+
+    // Initialize AI onboarding with initial answers
+    const jobTitle = initialAnswers.desiredRole || initialAnswers.hiringRole || 'Non spécifié'
+    resetOnboarding()
+    initializeOnboarding(role, jobTitle)
+    setStep('ai')
+  }
+
+  const handleAiAnswer = async () => {
+    if (!aiAnswerState.trim()) {
+      setError('Veuillez répondre à cette question')
+      return
+    }
+    setError('')
+    setAiAnswerState('')
+
+    // Submit answer to Zustand store
+    await aiSubmitAnswer(aiAnswerState)
+  }
+
+  const handleAiComplete = async () => {
+    if (role === 'CANDIDATE') {
+      setStep('cv-gen')
+      // Trigger CV generation
+      const result = await generateCv()
+      if (result) {
+        setStep('cv')
+      } else {
+        setError('Erreur lors de la génération du CV')
+        setStep('ai')
+      }
+    } else {
+      // Employer flow - complete directly
+      handleComplete(false)
     }
   }
 
-  const handleAiNext = () => {
-    if (!isAiComplete()) { setError('Merci de répondre à toutes les questions.'); return }
-    setError('')
-    if (role === 'CANDIDATE') setStep('cv')
-    else handleComplete(false)
-  }
-
-  const handleComplete = async (cv) => {
+  const handleComplete = async (cv = false) => {
     setSubmitting(true)
     setError('')
     try {
-      const data = await completeOnboarding(role, initialAnswers, aiAnswers, cv)
+      const payload = {
+        role,
+        initialAnswers,
+        aiAnswers: Object.fromEntries(previousAnswers.map(a => [a.fieldKey, a.answer])),
+        wantsCv: cv,
+      }
+      const data = await completeOnboarding(payload.role, payload.initialAnswers, payload.aiAnswers, payload.wantsCv)
       setAuth(data)
       setStep('done')
       setTimeout(() => navigate(ROLE_ROUTES[role] ?? '/dashboard/candidate'), 1800)
-    } catch {
-      setError("Une erreur est survenue. Veuillez réessayer.")
+    } catch (err) {
+      setError('Une erreur est survenue. Veuillez réessayer.')
+      console.error(err)
     } finally {
       setSubmitting(false)
     }
   }
 
+  const handleCvComplete = async () => {
+    await handleComplete(true)
+  }
+
   /* ── Loading ── */
-  if (step === 'loading') return (
+  if (step === 'ai-init') return (
     <StellaLoader
       message="STELLA analyse vos réponses…"
-      sub="Génération de questions personnalisées en cours"
+      sub="Préparation des questions personnalisées"
+    />
+  )
+
+  if (step === 'cv-gen') return (
+    <StellaLoader
+      message="Génération de votre CV…"
+      sub="Mise en page professionnelle en cours"
     />
   )
 
@@ -656,39 +710,72 @@ export default function OnboardingPage() {
     )
   }
 
-  /* ── CV offer ── */
+  /* ── CV Generation with new screen ── */
   if (step === 'cv') {
+    return (
+      <CvGenerationScreen
+        cvUrl={cvUrl}
+        country={context.country}
+        onDownload={() => { /* track if needed */ }}
+        onClose={() => handleCvComplete()}
+      />
+    )
+  }
+
+  /* ── AI Questions with new components ── */
+  if (step === 'ai' && currentQuestion) {
     return (
       <div className="ob-shell">
         <div className="ob-card">
           <div className="ob-card-header">
-            <div className="ob-logo"><span className="ob-logo-icon">S</span><span className="ob-logo-text">SkillSet</span></div>
-            <ProgressBar current={3} total={totalSteps} />
-          </div>
-          <div className="ob-cv-offer">
-            <div className="ob-cv-icon"><FileText size={48} /></div>
-            <h2>Votre CV SkillSet</h2>
-            <p>Souhaitez-vous que nous générions automatiquement un CV professionnel à partir de vos réponses ?</p>
-            {error && <div className="ob-error">{error}</div>}
-            <div className="ob-cv-actions">
-              <button className="ob-btn-primary" onClick={() => handleComplete(true)} disabled={submitting}>
-                Oui, générer mon CV
-              </button>
-              <button className="ob-btn-ghost" onClick={() => handleComplete(false)} disabled={submitting}>
-                Non merci
-              </button>
+            <div className="ob-logo">
+              <span className="ob-logo-icon">S</span>
+              <span className="ob-logo-text">SkillSet</span>
             </div>
+            <ProgressBar current={2} total={totalSteps} />
+          </div>
+
+          <div className="ob-card-body">
+            <PhaseIndicator
+              currentPhase={currentQuestion.nextPhase || 'INTRO'}
+              userRole={role}
+              completedQuestions={previousAnswers.length}
+              totalQuestions={15}
+            />
+
+            {(error || aiError) && <div className="ob-error">{error || aiError}</div>}
+
+            <AiQuestionCard
+              question={currentQuestion}
+              value={aiAnswerState}
+              onChange={(val) => setAiAnswerState(val)}
+              onSubmit={handleAiAnswer}
+              context={context}
+              isLoading={aiLoading}
+            />
+          </div>
+
+          <div className="ob-card-footer">
+            <button className="ob-btn-ghost" onClick={() => setStep('initial')}>
+              <ChevronLeft size={16} /> Retour
+            </button>
+            {aiComplete && (
+              <button
+                className="ob-btn-primary"
+                onClick={handleAiComplete}
+                disabled={aiLoading}
+              >
+                {role === 'CANDIDATE' ? 'Générer mon CV' : 'Terminer'}
+                <ChevronRight size={16} />
+              </button>
+            )}
           </div>
         </div>
       </div>
     )
   }
 
-  /* ── Initial / AI questions ── */
-  const questions  = step === 'initial' ? initialQuestions : aiQuestions
-  const answers    = step === 'initial' ? initialAnswers   : aiAnswers
-  const currentStep = step === 'initial' ? 1 : 2
-
+  /* ── Initial questions (unchanged) ── */
   return (
     <div className="ob-shell">
       <div className="ob-card">
@@ -697,28 +784,24 @@ export default function OnboardingPage() {
             <span className="ob-logo-icon">S</span>
             <span className="ob-logo-text">SkillSet</span>
           </div>
-          <ProgressBar current={currentStep} total={totalSteps} />
+          <ProgressBar current={1} total={totalSteps} />
         </div>
 
         <div className="ob-card-body">
-          {step === 'initial' && (
-            <>
-              <h2 className="ob-section-title">
-                {role === 'CANDIDATE' ? 'Parlez-nous de vous' : 'Votre entreprise'}
-              </h2>
-              <p className="ob-section-sub">Quelques questions pour personnaliser votre expérience</p>
-            </>
-          )}
+          <h2 className="ob-section-title">
+            {role === 'CANDIDATE' ? 'Parlez-nous de vous' : 'Votre entreprise'}
+          </h2>
+          <p className="ob-section-sub">Quelques questions pour personnaliser votre expérience</p>
           {error && <div className="ob-error">{error}</div>}
 
           <div className="ob-questions">
-            {questions.map(q => (
+            {initialQuestions.map(q => (
               <QuestionCard
                 key={q.id}
                 question={q}
-                value={answers[q.id] || ''}
-                answers={answers}
-                onChange={(id, val) => setAnswer(step === 'initial' ? 'initial' : 'ai', id, val)}
+                value={initialAnswers[q.id] || ''}
+                answers={initialAnswers}
+                onChange={(id, val) => setAnswer('initial', id, val)}
                 onSideEffect={(id, val) => setAnswer('initial', id, val)}
               />
             ))}
@@ -726,13 +809,8 @@ export default function OnboardingPage() {
         </div>
 
         <div className="ob-card-footer">
-          {step === 'ai' && (
-            <button className="ob-btn-ghost" onClick={() => setStep('initial')}>
-              <ChevronLeft size={16} /> Retour
-            </button>
-          )}
-          <button className="ob-btn-primary" onClick={step === 'initial' ? handleInitialNext : handleAiNext}>
-            {step === 'initial' ? 'Continuer' : (role === 'CANDIDATE' ? 'Continuer' : 'Terminer')}
+          <button className="ob-btn-primary" onClick={handleInitialNext}>
+            Continuer
             <ChevronRight size={16} />
           </button>
         </div>
