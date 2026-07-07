@@ -17,27 +17,30 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-public class ClaudeApiService {
+public class AiCompletionService {
 
-    @Value("${claude.api.key:}")
+    @Value("${ai.api.key:}")
     private String apiKey;
+
+    @Value("${ai.model:gemini-flash-latest}")
+    private String model;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static final String CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
-    private static final String MODEL = "claude-haiku-4-5-20251001";
+    private static final String AI_API_URL_TEMPLATE =
+            "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent";
     private static final String NON_PRECISE = "Non précisé";
 
     // ── Analyse de matching CV / offre ────────────────────────────────────────
 
     /**
-     * Envoie le texte du CV et les exigences du poste à Claude.
+     * Envoie le texte du CV et les exigences du poste au fournisseur IA configuré.
      * Retourne Optional.empty() si la clé API est absente ou en cas d'erreur.
      */
     public Optional<MatchResult> analyzeMatch(String cvText, String jobRequirements) {
         if (apiKey == null || apiKey.isBlank()) {
-            log.warn("Claude API key absent — matching keyword-only utilisé en fallback.");
+            log.warn("AI provider API key absent — matching keyword-only utilisé en fallback.");
             return Optional.empty();
         }
 
@@ -59,22 +62,7 @@ public class ClaudeApiService {
             + "0-39   : peu de correspondance";
 
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("x-api-key", apiKey);
-            headers.set("anthropic-version", "2023-06-01");
-
-            Map<String, Object> body = Map.of(
-                "model",      MODEL,
-                "max_tokens", 256,
-                "messages",   List.of(Map.of("role", "user", "content", prompt))
-            );
-
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(CLAUDE_API_URL, entity, String.class);
-
-            JsonNode root = objectMapper.readTree(response.getBody());
-            String text   = root.path("content").get(0).path("text").asText().trim();
+            String text = callAndExtractText(prompt, 256).trim();
             text = text.replace("```json", "").replace("```", "").trim();
 
             JsonNode json  = objectMapper.readTree(text);
@@ -83,7 +71,7 @@ public class ClaudeApiService {
 
             return Optional.of(new MatchResult(Math.min(100, Math.max(0, score)), expl));
         } catch (Exception e) {
-            log.error("Échec de l'appel Claude pour analyzeMatch : {}", e.getMessage());
+            log.error("Échec de l'appel IA pour analyzeMatch : {}", e.getMessage());
             return Optional.empty();
         }
     }
@@ -92,45 +80,51 @@ public class ClaudeApiService {
 
     public List<QuestionDto> generateCandidateQuestions(Map<String, String> initialAnswers) {
         String prompt = buildCandidatePrompt(initialAnswers);
-        return callClaudeAndParse(prompt);
+        return callAiAndParse(prompt);
     }
 
     public List<QuestionDto> generateEmployerQuestions(Map<String, String> initialAnswers) {
         String prompt = buildEmployerPrompt(initialAnswers);
-        return callClaudeAndParse(prompt);
+        return callAiAndParse(prompt);
     }
 
-    private List<QuestionDto> callClaudeAndParse(String prompt) {
+    private List<QuestionDto> callAiAndParse(String prompt) {
         if (apiKey == null || apiKey.isBlank()) {
-            log.warn("Claude API key not configured — returning fallback questions");
+            log.warn("AI provider API key not configured — returning fallback questions");
             return fallbackQuestions();
         }
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("x-api-key", apiKey);
-            headers.set("anthropic-version", "2023-06-01");
-
-            Map<String, Object> body = Map.of(
-                "model", MODEL,
-                "max_tokens", 2500,
-                "messages", List.of(Map.of("role", "user", "content", prompt))
-            );
-
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(CLAUDE_API_URL, entity, String.class);
-
-            JsonNode root = objectMapper.readTree(response.getBody());
-            String text = root.path("content").get(0).path("text").asText();
+            String text = callAndExtractText(prompt, 2500);
 
             // strip optional markdown code block
             text = text.replace("```json", "").replace("```", "").trim();
 
             return objectMapper.readValue(text, new TypeReference<List<QuestionDto>>() {});
         } catch (Exception e) {
-            log.error("Claude API call failed: {}", e.getMessage());
+            log.error("AI provider call failed: {}", e.getMessage());
             return fallbackQuestions();
         }
+    }
+
+    private String callAndExtractText(String prompt, int maxOutputTokens) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("x-goog-api-key", apiKey);
+
+        Map<String, Object> body = Map.of(
+            "contents", List.of(Map.of("role", "user", "parts", List.of(Map.of("text", prompt)))),
+            "generationConfig", Map.of(
+                "maxOutputTokens", maxOutputTokens,
+                "thinkingConfig", Map.of("thinkingBudget", 0)
+            )
+        );
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                String.format(AI_API_URL_TEMPLATE, model), entity, String.class);
+
+        JsonNode root = objectMapper.readTree(response.getBody());
+        return root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
     }
 
     private String buildCandidatePrompt(Map<String, String> answers) {

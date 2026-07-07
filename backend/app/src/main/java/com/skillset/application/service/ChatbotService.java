@@ -22,15 +22,18 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ChatbotService {
 
-    @Value("${claude.api.key:}")
+    @Value("${ai.api.key:}")
     private String apiKey;
+
+    @Value("${ai.model:gemini-flash-latest}")
+    private String model;
 
     private final UserRepository userRepository;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static final String CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
-    private static final String MODEL = "claude-haiku-4-5-20251001";
+    private static final String AI_API_URL_TEMPLATE =
+            "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent";
 
     public String chat(String userId, ChatRequest request) {
         User user = userRepository.findById(userId).orElse(null);
@@ -38,7 +41,7 @@ public class ChatbotService {
             return "Désolé, impossible de vous identifier. Veuillez vous reconnecter.";
         }
         String systemPrompt = buildSystemPrompt(user, request.getProfile());
-        return callClaude(systemPrompt, request.getHistory(), request.getMessage());
+        return callAiProvider(systemPrompt, request.getHistory(), request.getMessage());
     }
 
     private String buildSystemPrompt(User user, Map<String, Object> profile) {
@@ -93,40 +96,45 @@ public class ChatbotService {
         return sb.toString();
     }
 
-    private String callClaude(String systemPrompt, List<Map<String, String>> history, String message) {
+    private String callAiProvider(String systemPrompt, List<Map<String, String>> history, String message) {
         if (apiKey == null || apiKey.isBlank()) {
-            log.warn("Claude API key not configured — returning fallback reply for STELLA");
+            log.warn("AI provider API key not configured — returning fallback reply for STELLA");
             return fallbackReply();
         }
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("x-api-key", apiKey);
-            headers.set("anthropic-version", "2023-06-01");
+            headers.set("x-goog-api-key", apiKey);
 
-            // Build messages: history (last 10) + current message
-            List<Map<String, String>> messages = new ArrayList<>();
+            // Build contents: history (last 10, assistant→model) + current message
+            List<Map<String, Object>> contents = new ArrayList<>();
             if (history != null) {
                 history.stream()
                     .filter(m -> "user".equals(m.get("role")) || "assistant".equals(m.get("role")))
                     .limit(10)
-                    .forEach(messages::add);
+                    .forEach(m -> {
+                        String role = "assistant".equals(m.get("role")) ? "model" : "user";
+                        contents.add(Map.of("role", role, "parts", List.of(Map.of("text", m.get("content")))));
+                    });
             }
-            messages.add(Map.of("role", "user", "content", message));
+            contents.add(Map.of("role", "user", "parts", List.of(Map.of("text", message))));
 
             Map<String, Object> body = new LinkedHashMap<>();
-            body.put("model", MODEL);
-            body.put("max_tokens", 800);
-            body.put("system", systemPrompt);
-            body.put("messages", messages);
+            body.put("system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))));
+            body.put("contents", contents);
+            body.put("generationConfig", Map.of(
+                    "maxOutputTokens", 800,
+                    "thinkingConfig", Map.of("thinkingBudget", 0)
+            ));
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(CLAUDE_API_URL, entity, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    String.format(AI_API_URL_TEMPLATE, model), entity, String.class);
 
             JsonNode root = objectMapper.readTree(response.getBody());
-            return root.path("content").get(0).path("text").asText();
+            return root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
         } catch (Exception e) {
-            log.error("Claude API call failed for STELLA chatbot: {}", e.getMessage());
+            log.error("AI provider call failed for STELLA chatbot: {}", e.getMessage());
             return fallbackReply();
         }
     }

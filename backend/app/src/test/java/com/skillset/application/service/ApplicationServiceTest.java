@@ -2,7 +2,7 @@ package com.skillset.application.service;
 
 import com.skillset.application.dto.ApplicationDTO;
 import com.skillset.application.dto.MatchResult;
-import com.skillset.application.service.ClaudeApiService;
+import com.skillset.application.service.AiCompletionService;
 import com.skillset.domain.entity.Application;
 import com.skillset.domain.entity.ApplicationStatus;
 import com.skillset.domain.entity.JobListing;
@@ -44,7 +44,7 @@ class ApplicationServiceTest {
     @Mock AuthorizationService       authorizationService;
     @Mock CVParserUtil               cvParserUtil;
     @Mock CloudinaryService          cloudinaryService;
-    @Mock ClaudeApiService           claudeApiService;
+    @Mock AiCompletionService         aiCompletionService;
     @Mock NotificationPushService    notificationPushService;
 
     @InjectMocks ApplicationService applicationService;
@@ -90,8 +90,8 @@ class ApplicationServiceTest {
     class SubmitApplication {
 
         @Test
-        @DisplayName("utilise Claude AI pour scorer quand la clé est configurée")
-        void withCvFile_usesClaudeAiScore() throws IOException {
+        @DisplayName("utilise l'IA pour scorer quand la clé est configurée")
+        void withCvFile_usesAiScore() throws IOException {
             MultipartFile cv = mock(MultipartFile.class);
             when(cv.isEmpty()).thenReturn(false);
             when(cv.getBytes()).thenReturn("java spring developer".getBytes());
@@ -99,21 +99,21 @@ class ApplicationServiceTest {
             when(cvParserUtil.extractTextFromPdf(any(byte[].class))).thenReturn("Java Spring Developer");
             when(cloudinaryService.uploadCv(cv)).thenReturn("https://res.cloudinary.com/test/cv.pdf");
             when(jobRepositoryPort.findById("job-1")).thenReturn(Optional.of(jobListing()));
-            when(claudeApiService.analyzeMatch(anyString(), anyString()))
+            when(aiCompletionService.analyzeMatch(anyString(), anyString()))
                     .thenReturn(Optional.of(new MatchResult(87.0, "Excellent profil Java Spring.")));
             when(applicationRepositoryPort.save(any(Application.class))).thenReturn(savedApplication());
 
             applicationService.submitApplication("candidate-1", "job-1", "Lettre de motivation", cv);
 
-            verify(claudeApiService).analyzeMatch(anyString(), anyString());
+            verify(aiCompletionService).analyzeMatch(anyString(), anyString());
             verify(cvParserUtil, never()).calculateMatchScore(anyString(), anyString());
         }
 
         @Test
-        @DisplayName("utilise keyword-overlap si Claude AI n'est pas disponible")
-        void claudeAbsent_fallsBackToKeywordScore() {
+        @DisplayName("utilise keyword-overlap si l'IA n'est pas disponible")
+        void aiAbsent_fallsBackToKeywordScore() {
             when(jobRepositoryPort.findById("job-1")).thenReturn(Optional.of(jobListing()));
-            when(claudeApiService.analyzeMatch(anyString(), anyString())).thenReturn(Optional.empty());
+            when(aiCompletionService.analyzeMatch(anyString(), anyString())).thenReturn(Optional.empty());
             when(cvParserUtil.calculateMatchScore(anyString(), anyString())).thenReturn(50.0);
             when(applicationRepositoryPort.save(any(Application.class))).thenReturn(savedApplication());
 
@@ -126,7 +126,7 @@ class ApplicationServiceTest {
         @DisplayName("sauvegarde sans PDF si aucun fichier n'est fourni")
         void withoutCvFile_savesWithoutParsing() {
             when(jobRepositoryPort.findById("job-1")).thenReturn(Optional.of(jobListing()));
-            when(claudeApiService.analyzeMatch(anyString(), anyString())).thenReturn(Optional.empty());
+            when(aiCompletionService.analyzeMatch(anyString(), anyString())).thenReturn(Optional.empty());
             when(cvParserUtil.calculateMatchScore(anyString(), anyString())).thenReturn(0.0);
             when(applicationRepositoryPort.save(any(Application.class))).thenReturn(savedApplication());
 
@@ -137,16 +137,16 @@ class ApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("lettre de motivation incluse dans le texte soumis à Claude")
+        @DisplayName("lettre de motivation incluse dans le texte soumis à l'IA")
         void coverLetterIncludedInAiCall() {
             when(jobRepositoryPort.findById("job-1")).thenReturn(Optional.of(jobListing()));
-            when(claudeApiService.analyzeMatch(anyString(), anyString())).thenReturn(Optional.empty());
+            when(aiCompletionService.analyzeMatch(anyString(), anyString())).thenReturn(Optional.empty());
             when(cvParserUtil.calculateMatchScore(anyString(), anyString())).thenReturn(50.0);
             when(applicationRepositoryPort.save(any(Application.class))).thenReturn(savedApplication());
 
             applicationService.submitApplication("candidate-1", "job-1", "Java Spring expert", null);
 
-            verify(claudeApiService).analyzeMatch(contains("Java Spring expert"), anyString());
+            verify(aiCompletionService).analyzeMatch(contains("Java Spring expert"), anyString());
         }
     }
 

@@ -35,7 +35,7 @@ public class ApplicationService {
     private final AuthorizationService       authorizationService;
     private final CVParserUtil               cvParserUtil;
     private final CloudinaryService          cloudinaryService;
-    private final ClaudeApiService           claudeApiService;
+    private final AiCompletionService          aiCompletionService;
     private final NotificationPushService    notificationPushService;
 
     // ── Soumission ─────────────────────────────────────────────────────────────
@@ -70,12 +70,12 @@ public class ApplicationService {
         ref.setId(jobListingId);
         application.setJobListing(ref);
 
-        // 3. Match score — Claude AI en priorité, sinon keyword-overlap
+        // 3. Match score — IA en priorité, sinon keyword-overlap
         String fullCvText = nvl(cvText) + " " + nvl(coverLetter);
         jobRepositoryPort.findById(jobListingId).ifPresent(job -> {
             String jobText = nvl(job.getRequiredSkills()) + " " + nvl(job.getDescription());
 
-            Optional<MatchResult> aiResult = claudeApiService.analyzeMatch(fullCvText, jobText);
+            Optional<MatchResult> aiResult = aiCompletionService.analyzeMatch(fullCvText, jobText);
             if (aiResult.isPresent()) {
                 application.setMatchScore(aiResult.get().score());
                 application.setMatchExplanation(aiResult.get().explanation());

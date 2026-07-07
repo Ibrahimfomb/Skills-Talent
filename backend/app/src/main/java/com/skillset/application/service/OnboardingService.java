@@ -27,7 +27,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OnboardingService {
 
-    private final ClaudeApiService claudeApiService;
+    private final AiCompletionService aiCompletionService;
     private final UserRepositoryPort userRepositoryPort;
     private final CandidateProfileRepositoryPort candidateProfileRepositoryPort;
     private final EmployerProfileRepositoryPort employerProfileRepositoryPort;
@@ -37,8 +37,8 @@ public class OnboardingService {
 
     public GenerateQuestionsResponse generateQuestions(GenerateQuestionsRequest request) {
         List<QuestionDto> questions = "EMPLOYER".equalsIgnoreCase(request.getRole())
-                ? claudeApiService.generateEmployerQuestions(request.getInitialAnswers())
-                : claudeApiService.generateCandidateQuestions(request.getInitialAnswers());
+                ? aiCompletionService.generateEmployerQuestions(request.getInitialAnswers())
+                : aiCompletionService.generateCandidateQuestions(request.getInitialAnswers());
         return new GenerateQuestionsResponse(questions);
     }
 

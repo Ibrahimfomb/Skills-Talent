@@ -62,4 +62,28 @@ public class CloudinaryService {
                     "Échec de l'envoi du CV sur Cloudinary : " + e.getMessage());
         }
     }
+
+    /**
+     * Upload un PDF généré côté serveur (bytes bruts, pas de MultipartFile) sur Cloudinary.
+     * Retourne l'URL sécurisée, ou null si Cloudinary n'est pas configuré ou en cas d'échec.
+     */
+    public String uploadPdfBytes(byte[] pdfBytes, String publicId) {
+        if (cloudinary == null) return null;
+
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = cloudinary.uploader().upload(
+                    pdfBytes,
+                    ObjectUtils.asMap(
+                            "resource_type", "raw",
+                            "public_id",     publicId,
+                            "overwrite",     true
+                    )
+            );
+            return (String) result.get("secure_url");
+        } catch (IOException e) {
+            log.error("Échec de l'envoi du CV généré sur Cloudinary : {}", e.getMessage());
+            return null;
+        }
+    }
 }
