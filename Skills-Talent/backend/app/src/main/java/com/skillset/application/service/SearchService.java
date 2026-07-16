@@ -19,8 +19,9 @@ public class SearchService {
 
     private final JobListingRepository jobListingRepository;
     private final CandidateProfileRepository candidateProfileRepository;
+    private final ScoringService scoringService;
 
-    public Page<ScoredJobDTO> searchJobs(JobSearchCriteria criteria) {
+    public Page<ScoredJobDTO> searchJobs(JobSearchCriteria criteria, String currentUserId) {
         // Build Specification from criteria
         List<Specification<JobListing>> specs = new ArrayList<>();
         if (criteria.keywords() != null) specs.add(JobListingSpecification.withKeywords(criteria.keywords()));
@@ -38,16 +39,16 @@ public class SearchService {
         Pageable pageable = PageRequest.of(criteria.page(), criteria.size());
         Page<JobListing> results = jobListingRepository.findAll(combined, pageable);
 
+        Optional<CandidateProfile> candidateOpt = currentUserId != null
+            ? candidateProfileRepository.findByUserId(currentUserId)
+            : Optional.empty();
+
         return results.map(job -> {
-            ScoredJobDTO.ScoreBreakdown breakdown;
-            if ("RELEVANCE".equals(criteria.sortBy())) {
-                // Would need candidate context to score — return dummy for now
-                breakdown = new ScoredJobDTO.ScoreBreakdown(0.0, 0.0, 0.0, 0.0, 0.0);
-            } else {
-                breakdown = new ScoredJobDTO.ScoreBreakdown(0.0, 0.0, 0.0, 0.0, 0.0);
-            }
+            ScoredJobDTO.ScoreBreakdown breakdown = candidateOpt
+                .map(candidate -> scoringService.calculateMatchScore(job, candidate))
+                .orElse(new ScoredJobDTO.ScoreBreakdown(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
             Double score = breakdown.skillsPoints() + breakdown.experiencePoints() + breakdown.locationPoints() +
-                          breakdown.availabilityPoints() + breakdown.titlePoints();
+                          breakdown.availabilityPoints() + breakdown.titlePoints() + breakdown.domainPoints();
             return new ScoredJobDTO(job.getId(), job.getTitle(), job.getCompanyId(), job.getLocation(),
                 job.getJobType(), job.getSalaryMin(), job.getSalaryMax(), job.getRequiredSkills(),
                 job.getDescription(), job.getPostedAt(), job.getExpiresAt(), score, breakdown);
@@ -72,7 +73,7 @@ public class SearchService {
         Page<CandidateProfile> results = candidateProfileRepository.findAll(combined, pageable);
 
         return results.map(cand -> {
-            ScoredJobDTO.ScoreBreakdown breakdown = new ScoredJobDTO.ScoreBreakdown(0.0, 0.0, 0.0, 0.0, 0.0);
+            ScoredJobDTO.ScoreBreakdown breakdown = new ScoredJobDTO.ScoreBreakdown(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
             Double score = 0.0;
             return new ScoredCandidateDTO(cand.getId(), cand.getUserId(), cand.getJobDomain(), cand.getDesiredRole(),
                 cand.getExperienceLevel(), cand.getLocation(), cand.getCity(), cand.getCountry(),

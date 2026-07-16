@@ -6,7 +6,9 @@ import {
 } from 'lucide-react'
 import { useAuthStore }         from '../../store/AuthStore'
 import { useNotificationStore } from '../../store/NotificationStore'
+import { usePreferencesStore }  from '../../store/PreferencesStore'
 import AppNavbar                from '../../components/common/AppNavbar'
+import { useTranslation }       from '../../i18n/translations'
 import './NotificationsPage.css'
 
 const TYPE_CONFIG = {
@@ -17,31 +19,34 @@ const TYPE_CONFIG = {
   stella:      { icon: <Zap size={16} />,           color: '#6629a6', bg: '#f3eeff' },
 }
 
-function groupByDate(notifications) {
+function groupByDate(notifications, t) {
   const today     = new Date(); today.setHours(0,0,0,0)
   const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1)
-  const groups = { "Aujourd'hui": [], 'Hier': [], 'Plus tôt': [] }
+  const groups = { [t.today]: [], [t.yesterday]: [], [t.earlier]: [] }
   for (const n of notifications) {
     const d = new Date(n.date); d.setHours(0,0,0,0)
-    if (d.getTime() === today.getTime())          groups["Aujourd'hui"].push(n)
-    else if (d.getTime() === yesterday.getTime()) groups['Hier'].push(n)
-    else groups['Plus tôt'].push(n)
+    if (d.getTime() === today.getTime())          groups[t.today].push(n)
+    else if (d.getTime() === yesterday.getTime()) groups[t.yesterday].push(n)
+    else groups[t.earlier].push(n)
   }
   return Object.entries(groups).filter(([, arr]) => arr.length > 0)
 }
 
-function fmtTime(iso) {
-  return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+function fmtTime(iso, locale) {
+  return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 export default function NotificationsPage() {
   const navigate                               = useNavigate()
   const { user }                               = useAuthStore()
   const { notifications, unreadCount, markRead, markAllRead, removeNotification } = useNotificationStore()
+  const { language } = usePreferencesStore()
+  const t = useTranslation().notifications
+  const locale = language === 'fr' ? 'fr-FR' : 'en-US'
   const [alertOn, setAlertOn]                  = useState(true)
 
   const dashPath = user?.role === 'EMPLOYER' ? '/dashboard/employer' : '/dashboard/candidate'
-  const groups   = groupByDate(notifications)
+  const groups   = groupByDate(notifications, t)
 
   const handleClick = (n) => {
     if (!n.read) markRead(n.id)
@@ -62,12 +67,12 @@ export default function NotificationsPage() {
             <>
               <div className="np-page-header">
                 <div className="np-title-row">
-                  <h1 className="np-title">Notifications</h1>
-                  {unreadCount > 0 && <span className="np-unread-chip">{unreadCount} non lues</span>}
+                  <h1 className="np-title">{t.title}</h1>
+                  {unreadCount > 0 && <span className="np-unread-chip">{unreadCount} {t.unread}</span>}
                 </div>
                 {unreadCount > 0 && (
                   <button className="np-mark-all" onClick={markAllRead}>
-                    <CheckCheck size={15} /> Tout marquer comme lu
+                    <CheckCheck size={15} /> {t.markAllRead}
                   </button>
                 )}
               </div>
@@ -93,14 +98,14 @@ export default function NotificationsPage() {
                           <div className="np-notif-body">
                             <p className="np-notif-title">{n.title}</p>
                             <p className="np-notif-text">{n.body}</p>
-                            <p className="np-notif-time">{fmtTime(n.date)}</p>
+                            <p className="np-notif-time">{fmtTime(n.date, locale)}</p>
                           </div>
                           <div className="np-notif-actions">
                             {!n.read && <span className="np-unread-dot" />}
                             <button
                               className="np-delete-btn"
                               onClick={e => { e.stopPropagation(); removeNotification(n.id) }}
-                              aria-label="Supprimer"
+                              aria-label={t.remove}
                             >
                               <Trash2 size={14} />
                             </button>
@@ -118,38 +123,34 @@ export default function NotificationsPage() {
           {notifications.length === 0 && (
             <div className="np-empty-state">
               <div className="np-empty-illo">🔔</div>
-              <h2 className="np-empty-title">Aucune notification pour le moment.<br />Revenez ultérieurement.</h2>
-              <p className="np-empty-sub">Recevez des mises à jour à partir de vos recherches récentes</p>
+              <h2 className="np-empty-title">{t.emptyTitle}<br />{t.emptyTitleLine2}</h2>
+              <p className="np-empty-sub">{t.emptySub}</p>
 
               {/* Job alert toggle */}
               <div className="np-alert-card">
                 <div className="np-alert-row">
                   <span className="np-alert-icon">🕐</span>
-                  <span className="np-alert-text"><strong>5 364 nouveaux emplois</strong> Offre Emploi</span>
+                  <span className="np-alert-text"><strong>5 364 {t.newJobsAlert}</strong> {t.jobOffer}</span>
                   <button
                     className={`np-toggle ${alertOn ? 'np-toggle--on' : ''}`}
                     onClick={() => setAlertOn(v => !v)}
-                    aria-label="Activer l'alerte emploi"
+                    aria-label={t.enableJobAlert}
                   >
                     <span className="np-toggle-knob" />
                   </button>
                 </div>
               </div>
 
-              <p className="np-alert-hint">
-                Vous recevrez votre mise à jour par email dès qu&apos;un poste sera disponible.
-              </p>
+              <p className="np-alert-hint">{t.alertHint}</p>
               <button className="np-modify-link" onClick={() => navigate('/settings')}>
-                Modifier mes préférences pour les emails
+                {t.modifyPreferences}
               </button>
 
               <button className="np-search-btn" onClick={() => navigate(dashPath)}>
-                <Search size={15} /> Rechercher
+                <Search size={15} /> {t.search}
               </button>
 
-              <p className="np-legal">
-                En créant une alerte Emploi, vous acceptez nos conditions d&apos;utilisation.
-              </p>
+              <p className="np-legal">{t.legal}</p>
             </div>
           )}
 

@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Briefcase, Users, Sparkles, ShieldCheck } from 'lucide-react'
 import { loginUser, verify2faLogin } from '../../api/AuthApi'
 import { useAuthStore } from '../../store/AuthStore'
+import PublicNavbar from '../../components/common/PublicNavbar'
+import { useTranslation } from '../../i18n/translations'
 import './AuthPage.css'
 
 const ROLE_ROUTES = {
@@ -17,6 +19,7 @@ const resolveRedirect = (data) =>
 export default function LoginPage() {
   const navigate = useNavigate()
   const setAuth  = useAuthStore((s) => s.setAuth)
+  const t = useTranslation().login
 
   const [form, setForm]           = useState({ email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
@@ -33,7 +36,7 @@ export default function LoginPage() {
   // ── Étape 1 : email + mot de passe ───────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.email || !form.password) { setError('Veuillez remplir tous les champs.'); return }
+    if (!form.email || !form.password) { setError(t.fillAllFields); return }
     setLoading(true)
     try {
       const data = await loginUser({ email: form.email, password: form.password })
@@ -45,7 +48,7 @@ export default function LoginPage() {
       setAuth(data)
       navigate(resolveRedirect(data))
     } catch (err) {
-      setError(err.response?.data?.message || 'Email ou mot de passe incorrect.')
+      setError(err.response?.data?.message || t.invalidCredentials)
     } finally {
       setLoading(false)
     }
@@ -55,21 +58,25 @@ export default function LoginPage() {
   const handleTotpSubmit = async (e) => {
     e.preventDefault()
     const cleaned = totpCode.replace(/\s/g, '')
-    if (cleaned.length !== 6) { setError('Le code doit contenir 6 chiffres.'); return }
+    if (cleaned.length !== 6) { setError(t.twoFaInvalidLength); return }
     setLoading(true)
     try {
       const data = await verify2faLogin(preAuthToken, cleaned)
       setAuth(data)
       navigate(resolveRedirect(data))
     } catch (err) {
-      setError(err.response?.data?.message || 'Code invalide ou expiré.')
+      setError(err.response?.data?.message || t.twoFaInvalid)
     } finally {
       setLoading(false)
     }
   }
 
+  const [brandLine1, brandPrefix, brandAccent] = t.brandTitle
+
   return (
-    <div className="auth-shell">
+    <div className="auth-page">
+      <PublicNavbar />
+      <div className="auth-shell">
 
       {/* ── Panneau gauche — brand ── */}
       <div className="auth-brand">
@@ -85,25 +92,23 @@ export default function LoginPage() {
           </div>
 
           <h1 className="auth-brand-title">
-            Votre carrière<br />commence <span className="auth-brand-accent">ici</span>
+            {brandLine1}<br />{brandPrefix}<span className="auth-brand-accent">{brandAccent}</span>
           </h1>
 
-          <p className="auth-brand-subtitle">
-            La plateforme qui connecte les talents aux meilleures opportunités professionnelles en Afrique.
-          </p>
+          <p className="auth-brand-subtitle">{t.brandSubtitle}</p>
 
           <ul className="auth-features">
             <li>
               <span className="auth-feature-icon"><Briefcase size={14} /></span>{' '}
-              Des milliers d&apos;offres d&apos;emploi
+              {t.features[0]}
             </li>
             <li>
               <span className="auth-feature-icon"><Users size={14} /></span>{' '}
-              Mise en relation directe avec les recruteurs
+              {t.features[1]}
             </li>
             <li>
               <span className="auth-feature-icon"><Sparkles size={14} /></span>{' '}
-              Analyse IA de votre profil
+              {t.features[2]}
             </li>
           </ul>
         </div>
@@ -117,26 +122,26 @@ export default function LoginPage() {
           {step === 'credentials' && (
             <>
               <div className="auth-card-header">
-                <h2>Connexion</h2>
-                <p>Accédez à votre espace</p>
+                <h2>{t.title}</h2>
+                <p>{t.subtitle}</p>
               </div>
 
               {error && <div className="auth-error">{error}</div>}
 
               <form onSubmit={handleSubmit} noValidate className="auth-form">
                 <div className="auth-field">
-                  <label htmlFor="email">Adresse e-mail</label>
+                  <label htmlFor="email">{t.emailLabel}</label>
                   <input
                     id="email" name="email" type="email"
-                    placeholder="vous@exemple.com"
+                    placeholder={t.emailPlaceholder}
                     value={form.email} onChange={handleChange} autoComplete="email"
                   />
                 </div>
 
                 <div className="auth-field">
                   <div className="auth-field-row">
-                    <label htmlFor="password">Mot de passe</label>
-                    <Link to="#" className="auth-forgot">Mot de passe oublié ?</Link>
+                    <label htmlFor="password">{t.passwordLabel}</label>
+                    <Link to="#" className="auth-forgot">{t.forgotPassword}</Link>
                   </div>
                   <div className="auth-input-wrap">
                     <input
@@ -147,7 +152,7 @@ export default function LoginPage() {
                     <button
                       type="button" className="auth-eye"
                       onClick={() => setShowPassword(v => !v)}
-                      aria-label={showPassword ? 'Masquer' : 'Afficher'}
+                      aria-label={showPassword ? t.hidePassword : t.showPassword}
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -155,13 +160,13 @@ export default function LoginPage() {
                 </div>
 
                 <button type="submit" disabled={loading} className="auth-btn-primary">
-                  {loading ? <span className="auth-spinner" /> : 'Se connecter'}
+                  {loading ? <span className="auth-spinner" /> : t.submit}
                 </button>
               </form>
 
               <p className="auth-switch" style={{ marginTop: '24px' }}>
-                Pas encore de compte ?{' '}
-                <Link to="/register">S&apos;inscrire</Link>
+                {t.noAccount}{' '}
+                <Link to="/register">{t.signUp}</Link>
               </p>
             </>
           )}
@@ -171,15 +176,15 @@ export default function LoginPage() {
             <>
               <div className="auth-card-header">
                 <span className="auth-2fa-icon"><ShieldCheck size={32} /></span>
-                <h2>Vérification en deux étapes</h2>
-                <p>Entrez le code à 6 chiffres généré par votre application d&apos;authentification.</p>
+                <h2>{t.twoFaTitle}</h2>
+                <p>{t.twoFaSubtitle}</p>
               </div>
 
               {error && <div className="auth-error">{error}</div>}
 
               <form onSubmit={handleTotpSubmit} noValidate className="auth-form">
                 <div className="auth-field">
-                  <label htmlFor="totpCode">Code d&apos;authentification</label>
+                  <label htmlFor="totpCode">{t.twoFaLabel}</label>
                   <input
                     id="totpCode"
                     name="totpCode"
@@ -197,7 +202,7 @@ export default function LoginPage() {
                 </div>
 
                 <button type="submit" disabled={loading} className="auth-btn-primary">
-                  {loading ? <span className="auth-spinner" /> : 'Vérifier'}
+                  {loading ? <span className="auth-spinner" /> : t.verify}
                 </button>
               </form>
 
@@ -208,7 +213,7 @@ export default function LoginPage() {
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                   onClick={() => { setStep('credentials'); setError(''); setTotpCode('') }}
                 >
-                  Retour à la connexion
+                  {t.backToLogin}
                 </button>
               </p>
             </>
@@ -217,6 +222,7 @@ export default function LoginPage() {
         </div>
       </div>
 
+      </div>
     </div>
   )
 }

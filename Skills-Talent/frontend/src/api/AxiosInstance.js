@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAuthStore } from '../store/AuthStore';
 
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
@@ -16,10 +17,11 @@ axiosInstance.interceptors.request.use((config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('ss_auth');
-      globalThis.location.href = '/login';
+    // Only a real auth failure while we believed we were logged in warrants a logout.
+    // A soft logout (store update) lets React Router redirect via ProtectedRoute
+    // instead of a hard page reload that wipes in-flight SPA state.
+    if (error.response?.status === 401 && localStorage.getItem('authToken')) {
+      useAuthStore.getState().logout();
     }
     return Promise.reject(error);
   }

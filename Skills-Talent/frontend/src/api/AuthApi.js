@@ -12,6 +12,14 @@ export const getProfile = (userId) =>
 export const updateProfile = (userId, data) =>
   axiosInstance.put(`/auth/profile/${userId}`, data).then((r) => r.data)
 
+export const uploadProfilePhoto = (userId, file) => {
+  const form = new FormData()
+  form.append('file', file)
+  return axiosInstance
+    .post(`/auth/profile/${userId}/photo`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+    .then((r) => r.data)
+}
+
 // ── 2FA ──────────────────────────────────────────────────────────────────────
 
 export const setup2fa = () =>

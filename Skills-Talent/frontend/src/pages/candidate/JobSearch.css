@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #fafafa;
+  background: var(--surface-page);
   position: relative;
   overflow-x: hidden;
 }
@@ -62,11 +62,11 @@
 .js-icon-btn:hover { background: #f5f5f5; color: #1a1a1a; }
 
 /* ─── Search bar ─────────────────────────────────────────────── */
-.js-search-wrap { background: #fff; border-bottom: 1px solid #f0f0f0; padding: 16px 40px; position: relative; z-index: 1; }
+.js-search-wrap { background: var(--surface-card); border-bottom: 1px solid var(--surface-border); padding: 16px 40px; position: relative; z-index: 1; }
 
 .js-search-bar {
   display: flex; align-items: center;
-  background: #fff; border: 1.5px solid #e8e8e8;
+  background: var(--surface-card); border: 1.5px solid var(--surface-border);
   border-radius: 14px; box-shadow: 0 2px 14px rgba(0,0,0,0.07);
   overflow: hidden; max-width: 880px;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -74,18 +74,18 @@
 .js-search-bar:focus-within { border-color: #c42033; box-shadow: 0 2px 18px rgba(196,32,51,0.12); }
 
 .js-search-field { display: flex; align-items: center; flex: 1; padding: 0 16px; gap: 8px; position: relative; }
-.js-search-icon { color: #bbb; flex-shrink: 0; }
+.js-search-icon { color: var(--text-muted); flex-shrink: 0; }
 
 .js-search-input {
   flex: 1; height: 46px; background: none; border: none; outline: none;
-  font-size: 14px; color: #1a1a1a;
+  font-size: 14px; color: var(--text-primary);
 }
-.js-search-input::placeholder { color: #ccc; }
+.js-search-input::placeholder { color: var(--text-muted); }
 
-.js-clear-btn { background: none; border: none; color: #ccc; cursor: pointer; display: flex; align-items: center; padding: 2px; }
+.js-clear-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; padding: 2px; }
 .js-clear-btn:hover { color: #c42033; }
 
-.js-search-sep { width: 1px; height: 26px; background: #eee; flex-shrink: 0; }
+.js-search-sep { width: 1px; height: 26px; background: var(--surface-border); flex-shrink: 0; }
 
 .js-search-btn {
   padding: 0 24px; height: 46px; background: #c42033; border: none;
@@ -103,14 +103,14 @@
 .js-filters {
   width: 240px; flex-shrink: 0;
   padding: 24px 20px;
-  background: #fff; border-right: 1px solid #f0f0f0;
+  background: var(--surface-card); border-right: 1px solid var(--surface-border);
   overflow-y: auto;
 }
 
 .js-filters-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 
 .js-filters-title {
-  font-size: 13px; font-weight: 700; color: #1a1a1a;
+  font-size: 13px; font-weight: 700; color: var(--text-primary);
   display: flex; align-items: center; gap: 6px;
   text-transform: uppercase; letter-spacing: 0.6px;
 }
@@ -126,33 +126,33 @@
 
 .js-filter-group { margin-bottom: 22px; }
 
-.js-filter-label { font-size: 12px; font-weight: 700; color: #767676; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+.js-filter-label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
 
 .js-select {
-  width: 100%; padding: 8px 10px; border: 1.5px solid #e8e8e8;
-  border-radius: 8px; font-size: 13px; color: #1a1a1a;
-  background: #fff; outline: none; cursor: pointer;
+  width: 100%; padding: 8px 10px; border: 1.5px solid var(--surface-border);
+  border-radius: 8px; font-size: 13px; color: var(--text-primary);
+  background: var(--surface-card); outline: none; cursor: pointer;
 }
 .js-select:focus { border-color: #c42033; }
 
 .js-filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .js-chip {
-  padding: 5px 12px; border: 1.5px solid #e8e8e8; border-radius: 20px;
-  font-size: 12px; font-weight: 500; color: #555; background: #fff;
+  padding: 5px 12px; border: 1.5px solid var(--surface-border); border-radius: 20px;
+  font-size: 12px; font-weight: 500; color: var(--text-secondary); background: var(--surface-card);
   cursor: pointer; transition: border-color 0.13s, color 0.13s, background 0.13s;
 }
 .js-chip:hover { border-color: #c42033; color: #c42033; }
 .js-chip--active { border-color: #c42033; background: #c42033; color: #fff; }
 
-.js-radio { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #444; margin-bottom: 8px; cursor: pointer; }
+.js-radio { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; cursor: pointer; }
 .js-radio input { accent-color: #c42033; }
 
-.js-toggle { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #444; cursor: pointer; }
+.js-toggle { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
 .js-toggle input { display: none; }
 
 .js-toggle-track {
-  width: 36px; height: 20px; border-radius: 10px; background: #ddd;
+  width: 36px; height: 20px; border-radius: 10px; background: var(--surface-border);
   flex-shrink: 0; position: relative; transition: background 0.2s;
 }
 .js-toggle-track::after {
@@ -171,13 +171,13 @@
   margin-bottom: 18px;
 }
 
-.js-results-count { font-size: 14px; color: #555; }
-.js-results-count strong { color: #1a1a1a; }
+.js-results-count { font-size: 14px; color: var(--text-secondary); }
+.js-results-count strong { color: var(--text-primary); }
 
 .js-filter-toggle-btn {
   display: none; align-items: center; gap: 6px;
-  padding: 7px 14px; border: 1.5px solid #e8e8e8; border-radius: 8px;
-  background: #fff; font-size: 13px; font-weight: 500; color: #555; cursor: pointer;
+  padding: 7px 14px; border: 1.5px solid var(--surface-border); border-radius: 8px;
+  background: var(--surface-card); font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer;
 }
 
 .js-chevron-up { transform: rotate(180deg); }
@@ -192,14 +192,14 @@
 
 /* ─── Empty state ────────────────────────────────────────────── */
 .js-empty { text-align: center; padding: 60px 20px; }
-.js-empty-title { font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
-.js-empty-hint { font-size: 14px; color: #888; margin-bottom: 20px; }
+.js-empty-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+.js-empty-hint { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
 .js-empty-reset { padding: 10px 24px; background: #c42033; border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
 
 /* ─── Detail panel ───────────────────────────────────────────── */
 .js-detail {
   width: 360px; flex-shrink: 0;
-  background: #fff; border: 1.5px solid #ebebeb;
+  background: var(--surface-card); border: 1.5px solid var(--surface-border);
   border-radius: 16px; padding: 24px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.08);
   position: sticky; top: 100px;
@@ -209,29 +209,29 @@
 
 .js-detail-close {
   position: absolute; top: 16px; right: 16px;
-  background: none; border: none; color: #aaa; cursor: pointer; padding: 4px;
+  background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;
 }
-.js-detail-close:hover { color: #1a1a1a; }
+.js-detail-close:hover { color: var(--text-primary); }
 
 .js-detail-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px; }
 
 .js-detail-logo {
   font-size: 32px; width: 56px; height: 56px;
   display: flex; align-items: center; justify-content: center;
-  background: #f5f5f5; border-radius: 12px; border: 1px solid #f0f0f0;
+  background: var(--surface-border-soft); border-radius: 12px; border: 1px solid var(--surface-border);
   flex-shrink: 0;
 }
 
-.js-detail-title { font-size: 18px; font-weight: 800; color: #1a1a1a; margin: 0 0 4px; }
-.js-detail-company { font-size: 13px; color: #777; margin: 0; }
+.js-detail-title { font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px; }
+.js-detail-company { font-size: 13px; color: var(--text-muted); margin: 0; }
 
 .js-detail-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 
 .js-detail-salary { font-size: 15px; font-weight: 700; color: #1a6e44; margin-bottom: 16px; }
 
-.js-detail-desc { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 20px; }
+.js-detail-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px; }
 
-.js-detail-sub { font-size: 11px; font-weight: 700; color: #767676; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+.js-detail-sub { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
 
 .js-detail-skill-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
 
@@ -245,8 +245,8 @@
 .js-apply-btn:hover { background: #a81a2b; }
 
 .js-save-btn {
-  width: 100%; padding: 11px; background: #fff; border: 1.5px solid #e8e8e8;
-  border-radius: 10px; color: #555; font-size: 14px; font-weight: 600;
+  width: 100%; padding: 11px; background: var(--surface-card); border: 1.5px solid var(--surface-border);
+  border-radius: 10px; color: var(--text-secondary); font-size: 14px; font-weight: 600;
   cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
   transition: border-color 0.14s, color 0.14s;
 }
@@ -270,7 +270,7 @@
 }
 
 .js-modal {
-  background: #fff;
+  background: var(--surface-card);
   border-radius: 16px;
   padding: 28px;
   max-width: 460px;
@@ -286,26 +286,26 @@
 .js-modal-logo {
   font-size: 36px; width: 56px; height: 56px;
   display: flex; align-items: center; justify-content: center;
-  background: #f5f5f5; border-radius: 12px; flex-shrink: 0;
+  background: var(--surface-border-soft); border-radius: 12px; flex-shrink: 0;
 }
 
-.js-modal-title { font-size: 17px; font-weight: 700; color: #1a1a1a; margin: 0 0 4px; }
-.js-modal-company { font-size: 13px; color: #888; margin: 0; }
+.js-modal-title { font-size: 17px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
+.js-modal-company { font-size: 13px; color: var(--text-muted); margin: 0; }
 .js-modal-close {
   position: absolute; top: 16px; right: 16px;
-  background: none; border: none; color: #aaa; cursor: pointer; padding: 4px;
+  background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;
 }
-.js-modal-close:hover { color: #1a1a1a; }
+.js-modal-close:hover { color: var(--text-primary); }
 
 .js-modal-desc {
-  font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 24px;
+  font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;
 }
 
 .js-modal-actions { display: flex; flex-direction: column; gap: 10px; }
 
 .js-modal-cancel {
-  width: 100%; padding: 11px; background: #fff; border: 1.5px solid #e8e8e8;
-  border-radius: 10px; color: #888; font-size: 14px; font-weight: 500;
+  width: 100%; padding: 11px; background: var(--surface-card); border: 1.5px solid var(--surface-border);
+  border-radius: 10px; color: var(--text-muted); font-size: 14px; font-weight: 500;
   cursor: pointer; transition: border-color 0.14s;
 }
 .js-modal-cancel:hover { border-color: #c42033; color: #c42033; }
@@ -316,20 +316,21 @@
 }
 
 .js-modal-success-icon { color: #1a6e44; margin-bottom: 16px; }
-.js-modal-success h3 { font-size: 20px; font-weight: 700; color: #1a1a1a; margin: 0 0 10px; }
-.js-modal-success p { font-size: 14px; color: #555; margin: 0 0 6px; line-height: 1.5; }
+.js-modal-success h3 { font-size: 20px; font-weight: 700; color: var(--text-primary); margin: 0 0 10px; }
+.js-modal-success p { font-size: 14px; color: var(--text-secondary); margin: 0 0 6px; line-height: 1.5; }
 
 /* ─── Modal — champs candidature ─────────────────────────────── */
 .js-modal-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.js-modal-label { font-size: 13px; font-weight: 600; color: #444; }
+.js-modal-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
 .js-modal-textarea {
   resize: vertical;
   min-height: 90px;
   padding: 10px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
   font-size: 14px;
-  color: #222;
+  color: var(--text-primary);
+  background: var(--surface-card);
   font-family: inherit;
   transition: border-color .15s;
 }
@@ -339,11 +340,11 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  border: 1.5px dashed #c0c0c0;
+  border: 1.5px dashed var(--text-muted);
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--surface-page);
   font-size: 13px;
-  color: #555;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: border-color .15s, color .15s;
   width: fit-content;
@@ -357,7 +358,7 @@
   border: none;
   background: none;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
 }
 .js-remove-file:hover { color: #c42033; }

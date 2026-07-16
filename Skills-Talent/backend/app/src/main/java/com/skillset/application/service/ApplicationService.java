@@ -159,13 +159,37 @@ public class ApplicationService {
     private ApplicationDTO toDTO(Application app) {
         String candidateName  = "";
         String candidateEmail = "";
+        String candidatePhone = "";
         Optional<User> candidate = userRepositoryPort.findUserById(app.getJobSeekerId());
         if (candidate.isPresent()) {
             User u = candidate.get();
             candidateName  = nvl(u.getFirstName()) + " " + nvl(u.getLastName());
             candidateEmail = nvl(u.getEmail());
+            candidatePhone = nvl(u.getPhoneNumber());
         }
-        String jobTitle = app.getJobListing() != null ? nvl(app.getJobListing().getTitle()) : "";
+
+        String jobTitle = "";
+        String jobLocation = "";
+        String jobType = "";
+        String companyId = null;
+        String employerName = "";
+        String employerPhone = "";
+        JobListing job = app.getJobListing() != null
+                ? jobRepositoryPort.findById(app.getJobListing().getId()).orElse(null)
+                : null;
+        if (job != null) {
+            jobTitle = nvl(job.getTitle());
+            jobLocation = nvl(job.getLocation());
+            jobType = nvl(job.getJobType());
+            companyId = job.getCompanyId();
+            Optional<User> employer = userRepositoryPort.findUserById(job.getCompanyId());
+            if (employer.isPresent()) {
+                User e = employer.get();
+                employerName = (nvl(e.getFirstName()) + " " + nvl(e.getLastName())).trim();
+                employerPhone = nvl(e.getPhoneNumber());
+            }
+        }
+
         return new ApplicationDTO(
                 app.getId(),
                 app.getJobSeekerId(),
@@ -177,7 +201,13 @@ public class ApplicationService {
                 app.getMatchExplanation(),
                 candidateName.trim(),
                 candidateEmail,
-                jobTitle
+                jobTitle,
+                candidatePhone,
+                companyId,
+                employerName,
+                employerPhone,
+                jobLocation,
+                jobType
         );
     }
 

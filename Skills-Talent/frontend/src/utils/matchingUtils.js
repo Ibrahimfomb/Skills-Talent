@@ -35,8 +35,8 @@ export function matchScore(job, profile) {
 }
 
 // ─── Get ranked jobs for a candidate profile ─────────────────────────────────
-export function getRecommendedJobs(profile, limit = 5) {
-  return JOBS
+export function getRecommendedJobs(profile, limit = 5, jobsPool = JOBS) {
+  return jobsPool
     .map(job => ({ ...job, matchPct: matchScore(job, profile) }))
     .sort((a, b) => b.matchPct - a.matchPct)
     .slice(0, limit)

@@ -19,8 +19,9 @@ public class SearchController {
     private final SearchService searchService;
 
     @PostMapping("/jobs")
-    public ResponseEntity<Page<ScoredJobDTO>> searchJobs(@RequestBody JobSearchCriteria criteria) {
-        return ResponseEntity.ok(searchService.searchJobs(criteria));
+    public ResponseEntity<Page<ScoredJobDTO>> searchJobs(@RequestBody JobSearchCriteria criteria,
+                                                           @AuthenticationPrincipal String userId) {
+        return ResponseEntity.ok(searchService.searchJobs(criteria, userId));
     }
 
     @PostMapping("/candidates")

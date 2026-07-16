@@ -9,28 +9,33 @@ import { useAuthStore }               from '../../store/AuthStore'
 import AppNavbar                      from '../../components/common/AppNavbar'
 import JobCard                        from '../../features/job-board/JobCard'
 import { getJobs }                    from '../../api/JobApi'
-import { submitApplication }          from '../../api/ApplicationApi'
+import { submitApplication, getCandidateApplications } from '../../api/ApplicationApi'
+import { useTranslation }             from '../../i18n/translations'
 import './JobSearch.css'
-
-const SECTORS        = ['Tech', 'Finance', 'Marketing', 'RH', 'Commercial', 'Design', 'Conseil', 'Énergie']
-const CONTRACT_TYPES = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance']
-const SALARY_RANGES  = [
-  { label: 'Tous',          value: 0 },
-  { label: '> 150k FCFA',   value: 150_000 },
-  { label: '> 300k FCFA',   value: 300_000 },
-  { label: '> 500k FCFA',   value: 500_000 },
-  { label: '> 700k FCFA',   value: 700_000 },
-]
 
 export default function JobSearch() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const t = useTranslation().candidate.jobSearch
 
-  const { saveJob, unsaveJob, isJobSaved, applyToJob, hasApplied } = useUserDataStore()
+  const { saveJob, unsaveJob, isJobSaved, applyToJob } = useUserDataStore()
   const { user } = useAuthStore()
+
+  // Applied-job state comes from the real backend, not the local mock store,
+  // so it stays correct across reloads/devices instead of only within this session.
+  const [appliedJobIds, setAppliedJobIds] = useState(new Set())
+
+  useEffect(() => {
+    if (!user?.id) return
+    getCandidateApplications(user.id)
+      .then(apps => setAppliedJobIds(new Set(apps.map(a => a.jobListingId))))
+      .catch(() => {})
+  }, [user?.id])
+
+  const hasApplied = (jobId) => appliedJobIds.has(jobId)
 
   const [query,       setQuery]       = useState(searchParams.get('q') || '')
   const [location,    setLocation]    = useState(searchParams.get('location') || '')
-  const [filters,     setFilters]     = useState({ type: '', sector: '', salaryMin: 0, remote: false, sort: 'date' })
+  const [filters,     setFilters]     = useState({ type: '', sector: '', salaryMin: 0, remote: false, sort: 'relevance' })
   const [showFilters, setShowFilters] = useState(false)
   const [results,     setResults]     = useState([])
   const [selected,    setSelected]    = useState(null)
@@ -59,7 +64,7 @@ export default function JobSearch() {
   }
 
   const clearFilters = () => {
-    const reset = { type: '', sector: '', salaryMin: 0, remote: false, sort: 'date' }
+    const reset = { type: '', sector: '', salaryMin: 0, remote: false, sort: 'relevance' }
     setFilters(reset)
     doSearch(query, location, reset)
   }
@@ -86,6 +91,17 @@ export default function JobSearch() {
     setApplyModal(true)
   }
 
+  // Postuler directement depuis la carte, sans passer par le panneau de détail
+  const handleQuickApply = (job) => {
+    if (hasApplied(job.id)) return
+    setSelected(job)
+    setApplied(false)
+    setCoverLetter('')
+    setCvFile(null)
+    setSubmitError(null)
+    setApplyModal(true)
+  }
+
   // Confirm application — appel API réel
   const confirmApply = async () => {
     if (!selected || submitting) return
@@ -93,6 +109,7 @@ export default function JobSearch() {
     setSubmitError(null)
     try {
       await submitApplication(selected.id, coverLetter, cvFile)
+      setAppliedJobIds(prev => new Set(prev).add(selected.id))
       applyToJob({
         jobId:    selected.id,
         jobTitle: selected.title,
@@ -105,7 +122,7 @@ export default function JobSearch() {
       setApplied(true)
       setTimeout(() => setApplyModal(false), 2500)
     } catch (err) {
-      setSubmitError(err?.response?.data?.message || 'Échec de la candidature. Réessayez.')
+      setSubmitError(err?.response?.data?.message || t.applyFailed)
     } finally {
       setSubmitting(false)
     }
@@ -125,7 +142,7 @@ export default function JobSearch() {
             <Search size={17} className="js-search-icon" />
             <input
               className="js-search-input"
-              placeholder="Titre, compétences, entreprise…"
+              placeholder={t.searchPlaceholder}
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && doSearch()}
@@ -141,13 +158,13 @@ export default function JobSearch() {
             <MapPin size={17} className="js-search-icon" />
             <input
               className="js-search-input"
-              placeholder="Ville ou pays…"
+              placeholder={t.locationPlaceholder}
               value={location}
               onChange={e => setLocation(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && doSearch()}
             />
           </div>
-          <button className="js-search-btn" onClick={() => doSearch()}>Rechercher</button>
+          <button className="js-search-btn" onClick={() => doSearch()}>{t.searchButton}</button>
         </div>
       </div>
 
@@ -158,37 +175,38 @@ export default function JobSearch() {
         <aside className={`js-filters ${showFilters ? 'js-filters--open' : ''}`}>
           <div className="js-filters-header">
             <span className="js-filters-title">
-              Filtres {activeFilterCount > 0 && <span className="js-filter-count">{activeFilterCount}</span>}
+              {t.filters} {activeFilterCount > 0 && <span className="js-filter-count">{activeFilterCount}</span>}
             </span>
             {activeFilterCount > 0 && (
-              <button className="js-clear-all" onClick={clearFilters}>Effacer</button>
+              <button className="js-clear-all" onClick={clearFilters}>{t.clearAll}</button>
             )}
           </div>
 
           <div className="js-filter-group">
-            <p className="js-filter-label">Trier par</p>
+            <p className="js-filter-label">{t.sortBy}</p>
             <select className="js-select" value={filters.sort} onChange={e => handleFilter('sort', e.target.value)}>
-              <option value="date">Date de publication</option>
-              <option value="salary">Salaire</option>
+              <option value="relevance">{t.sortRelevance}</option>
+              <option value="date">{t.sortDate}</option>
+              <option value="salary">{t.sortSalary}</option>
             </select>
           </div>
 
           <div className="js-filter-group">
-            <p className="js-filter-label">Type de contrat</p>
+            <p className="js-filter-label">{t.contractType}</p>
             <div className="js-filter-chips">
-              {CONTRACT_TYPES.map(t => (
-                <button key={t} className={`js-chip ${filters.type === t ? 'js-chip--active' : ''}`}
-                  onClick={() => handleFilter('type', filters.type === t ? '' : t)}>
-                  {t}
+              {t.contractTypes.map(ct => (
+                <button key={ct} className={`js-chip ${filters.type === ct ? 'js-chip--active' : ''}`}
+                  onClick={() => handleFilter('type', filters.type === ct ? '' : ct)}>
+                  {ct}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="js-filter-group">
-            <p className="js-filter-label">Secteur</p>
+            <p className="js-filter-label">{t.sector}</p>
             <div className="js-filter-chips">
-              {SECTORS.map(s => (
+              {t.sectors.map(s => (
                 <button key={s} className={`js-chip ${filters.sector === s ? 'js-chip--active' : ''}`}
                   onClick={() => handleFilter('sector', filters.sector === s ? '' : s)}>
                   {s}
@@ -198,8 +216,8 @@ export default function JobSearch() {
           </div>
 
           <div className="js-filter-group">
-            <p className="js-filter-label">Salaire minimum</p>
-            {SALARY_RANGES.map(r => (
+            <p className="js-filter-label">{t.minSalary}</p>
+            {t.salaryRanges.map(r => (
               <label key={r.value} className="js-radio">
                 <input type="radio" name="salaryMin" checked={filters.salaryMin === r.value}
                   onChange={() => handleFilter('salaryMin', r.value)} />
@@ -213,7 +231,7 @@ export default function JobSearch() {
               <input type="checkbox" checked={filters.remote}
                 onChange={e => handleFilter('remote', e.target.checked)} />
               <span className="js-toggle-track" />
-              Télétravail uniquement
+              {t.remoteOnly}
             </label>
           </div>
         </aside>
@@ -222,12 +240,12 @@ export default function JobSearch() {
         <div className="js-results-wrap">
           <div className="js-results-header">
             <p className="js-results-count">
-              <strong>{results.length}</strong> offre{results.length !== 1 ? 's' : ''} trouvée{results.length !== 1 ? 's' : ''}
-              {query && <> pour « {query} »</>}
+              <strong>{results.length}</strong> {results.length !== 1 ? t.resultsFound.plural : t.resultsFound.singular}
+              {query && <> {t.resultsFor.replace('{q}', query)}</>}
             </p>
             <button className="js-filter-toggle-btn" onClick={() => setShowFilters(v => !v)}>
               <SlidersHorizontal size={15} />
-              Filtres
+              {t.filters}
               {activeFilterCount > 0 && <span className="js-filter-count">{activeFilterCount}</span>}
               <ChevronDown size={14} className={showFilters ? 'js-chevron-up' : ''} />
             </button>
@@ -238,9 +256,9 @@ export default function JobSearch() {
             <div className="js-list">
               {results.length === 0 ? (
                 <div className="js-empty">
-                  <p className="js-empty-title">Aucune offre trouvée</p>
-                  <p className="js-empty-hint">Essayez d&apos;autres mots-clés ou élargissez vos filtres.</p>
-                  <button className="js-empty-reset" onClick={clearFilters}>Réinitialiser les filtres</button>
+                  <p className="js-empty-title">{t.noResultsTitle}</p>
+                  <p className="js-empty-hint">{t.noResultsHint}</p>
+                  <button className="js-empty-reset" onClick={clearFilters}>{t.resetFilters}</button>
                 </div>
               ) : (
                 results.map(job => (
@@ -249,6 +267,8 @@ export default function JobSearch() {
                     job={{ ...job, saved: isJobSaved(job.id) }}
                     onClick={setSelected}
                     onSave={() => handleSave(job)}
+                    onApply={handleQuickApply}
+                    applied={hasApplied(job.id)}
                   />
                 ))
               )}
@@ -257,7 +277,7 @@ export default function JobSearch() {
             {/* Detail panel */}
             {selected && (
               <div className="js-detail">
-                <button className="js-detail-close" onClick={() => setSelected(null)} aria-label="Fermer">
+                <button className="js-detail-close" onClick={() => setSelected(null)} aria-label={t.close}>
                   <X size={18} />
                 </button>
 
@@ -271,7 +291,7 @@ export default function JobSearch() {
 
                 <div className="js-detail-badges">
                   <span className="jc-badge">{selected.type}</span>
-                  {selected.remote && <span className="jc-badge jc-badge--remote">Télétravail</span>}
+                  {selected.remote && <span className="jc-badge jc-badge--remote">{t.remote}</span>}
                   {selected.experience && <span className="jc-badge">{selected.experience}</span>}
                   {selected.education  && <span className="jc-badge">{selected.education}</span>}
                 </div>
@@ -284,7 +304,7 @@ export default function JobSearch() {
 
                 {selected.skills?.length > 0 && (
                   <div className="js-detail-skills">
-                    <p className="js-detail-sub">Compétences requises</p>
+                    <p className="js-detail-sub">{t.requiredSkills}</p>
                     <div className="js-detail-skill-list">
                       {selected.skills.map(s => <span key={s} className="jc-skill">{s}</span>)}
                     </div>
@@ -294,11 +314,11 @@ export default function JobSearch() {
                 <div className="js-detail-actions">
                   {hasApplied(selected.id) ? (
                     <div className="js-applied-state">
-                      <CheckCircle2 size={18} /> Candidature envoyée
+                      <CheckCircle2 size={18} /> {t.applied}
                     </div>
                   ) : (
                     <button className="js-apply-btn" onClick={handleApply}>
-                      <Send size={16} /> Postuler maintenant
+                      <Send size={16} /> {t.applyNow}
                     </button>
                   )}
                   <button
@@ -306,7 +326,7 @@ export default function JobSearch() {
                     onClick={() => handleSave(selected)}
                   >
                     {isJobSaved(selected.id) ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
-                    {isJobSaved(selected.id) ? 'Sauvegardé' : 'Sauvegarder'}
+                    {isJobSaved(selected.id) ? t.saved : t.save}
                   </button>
                 </div>
               </div>
@@ -322,9 +342,9 @@ export default function JobSearch() {
             {applied ? (
               <div className="js-modal-success">
                 <CheckCircle2 size={48} className="js-modal-success-icon" />
-                <h3>Candidature envoyée !</h3>
-                <p>Votre profil a bien été transmis à <strong>{selected.company}</strong>.</p>
-                <p>Suivez l&apos;avancement dans <strong>Mes emplois</strong>.</p>
+                <h3>{t.appliedModalTitle}</h3>
+                <p>{t.appliedModalBody} <strong>{selected.company}</strong>.</p>
+                <p>{t.appliedModalTrack} <strong>{t.myJobs}</strong>.</p>
               </div>
             ) : (
               <>
@@ -339,11 +359,11 @@ export default function JobSearch() {
 
                 {/* Lettre de motivation */}
                 <div className="js-modal-field">
-                  <label className="js-modal-label">Lettre de motivation</label>
+                  <label className="js-modal-label">{t.coverLetter}</label>
                   <textarea
                     className="js-modal-textarea"
                     rows={4}
-                    placeholder="Présentez-vous et expliquez pourquoi ce poste vous correspond…"
+                    placeholder={t.coverLetterPlaceholder}
                     value={coverLetter}
                     onChange={e => setCoverLetter(e.target.value)}
                   />
@@ -351,7 +371,7 @@ export default function JobSearch() {
 
                 {/* Upload CV */}
                 <div className="js-modal-field">
-                  <label className="js-modal-label">CV (PDF recommandé)</label>
+                  <label className="js-modal-label">{t.cvLabel}</label>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -365,11 +385,11 @@ export default function JobSearch() {
                   >
                     {cvFile
                       ? <><FileText size={15} /> {cvFile.name}</>
-                      : <><Upload size={15} /> Choisir un fichier</>}
+                      : <><Upload size={15} /> {t.chooseFile}</>}
                   </button>
                   {cvFile && (
                     <button className="js-remove-file" onClick={() => setCvFile(null)}>
-                      <X size={13} /> Retirer
+                      <X size={13} /> {t.removeFile}
                     </button>
                   )}
                 </div>
@@ -383,10 +403,10 @@ export default function JobSearch() {
                     disabled={submitting}
                   >
                     {submitting
-                      ? 'Envoi en cours…'
-                      : <><Send size={15} /> Envoyer ma candidature</>}
+                      ? t.sending
+                      : <><Send size={15} /> {t.sendApplication}</>}
                   </button>
-                  <button className="js-modal-cancel" onClick={() => setApplyModal(false)}>Annuler</button>
+                  <button className="js-modal-cancel" onClick={() => setApplyModal(false)}>{t.cancel}</button>
                 </div>
               </>
             )}

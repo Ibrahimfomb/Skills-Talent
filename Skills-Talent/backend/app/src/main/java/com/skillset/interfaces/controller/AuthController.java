@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -45,6 +46,14 @@ public class AuthController {
                                                  @RequestBody UserDTO details) {
         UserDTO dto = authService.updateUser(currentUserId, userId, details);
         return dto != null ? ResponseEntity.ok(dto) : ResponseEntity.notFound().build();
+    }
+
+    @PostMapping(value = "/profile/{userId}/photo", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal")
+    public ResponseEntity<UserDTO> uploadProfilePhoto(@AuthenticationPrincipal String currentUserId,
+                                                       @PathVariable String userId,
+                                                       @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(authService.updateProfilePhoto(currentUserId, userId, file));
     }
 
     // ── 2FA — Configuration (utilisateur authentifié) ─────────────────────────

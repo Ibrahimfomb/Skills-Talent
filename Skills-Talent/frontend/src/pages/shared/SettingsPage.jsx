@@ -11,47 +11,8 @@ import { getPreferences, savePreferences } from '../../api/PreferencesApi'
 import AccountDeletionModal                from '../../features/account/AccountDeletionModal'
 import DataExportModal                     from '../../features/account/DataExportModal'
 import { getConsents, updateConsent }      from '../../api/GdprApi'
+import { useTranslation }                  from '../../i18n/translations'
 import './SettingsPage.css'
-
-const SECTIONS = [
-  {
-    id: 'account',
-    icon: <CircleUser size={18} />,
-    label: 'Paramètres du compte',
-    sub: 'Vos coordonnées',
-  },
-  {
-    id: 'security',
-    icon: <Lock size={18} />,
-    label: 'Paramètres de sécurité',
-    sub: 'Gestion de la sécurité de votre compte',
-    badge: 'Nouveau',
-  },
-  {
-    id: 'communication',
-    icon: <Mail size={18} />,
-    label: 'Paramètres de communication',
-    sub: 'Gestion des notifications et des paramètres des messages',
-  },
-  {
-    id: 'devices',
-    icon: <Monitor size={18} />,
-    label: 'Gestion des appareils',
-    sub: 'Gestion des appareils actifs et des sessions',
-  },
-  {
-    id: 'privacy',
-    icon: <Shield size={18} />,
-    label: 'Paramètres de confidentialité',
-    sub: 'Informations à propos de la protection de la vie privée',
-  },
-  {
-    id: 'preferences',
-    icon: <SlidersHorizontal size={18} />,
-    label: 'Préférences emploi',
-    sub: 'Types de contrats, localisations, salaire attendu',
-  },
-]
 
 const DEVICES = [
   { device: 'Chrome Windows', loginDate: '10 juin 2026', ip: '102.244.45.246', city: 'Yaoundé', current: true },
@@ -60,7 +21,17 @@ const DEVICES = [
 export default function SettingsPage() {
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
+  const t = useTranslation().settings
   const [activeSection, setActiveSection] = useState('account')
+
+  const SECTIONS = [
+    { id: 'account',       icon: <CircleUser size={18} />,          ...t.sections.account },
+    { id: 'security',      icon: <Lock size={18} />,                ...t.sections.security },
+    { id: 'communication', icon: <Mail size={18} />,                ...t.sections.communication },
+    { id: 'devices',       icon: <Monitor size={18} />,             ...t.sections.devices },
+    { id: 'privacy',       icon: <Shield size={18} />,              ...t.sections.privacy },
+    { id: 'preferences',   icon: <SlidersHorizontal size={18} />,   ...t.sections.preferences },
+  ]
 
   const handleLogout = () => { logout(); navigate('/login') }
   const [onlineStatus, setOnlineStatus] = useState(true)
@@ -84,9 +55,9 @@ export default function SettingsPage() {
     setPrefLoading(true)
     getPreferences()
       .then(d => setPref({ preferredJobTypes: d.preferredJobTypes || '', preferredLocations: d.preferredLocations || '', preferredIndustries: d.preferredIndustries || '', salaryExpectationMin: d.salaryExpectationMin ?? '', salaryExpectationMax: d.salaryExpectationMax ?? '', notificationsEnabled: d.notificationsEnabled ?? true, emailAlertsEnabled: d.emailAlertsEnabled ?? true }))
-      .catch(() => setPrefError('Impossible de charger les préférences.'))
+      .catch(() => setPrefError(t.loadPrefError))
       .finally(() => setPrefLoading(false))
-  }, [activeSection])
+  }, [activeSection, t.loadPrefError])
 
   useEffect(() => {
     if (activeSection === 'privacy') {
@@ -116,11 +87,9 @@ export default function SettingsPage() {
     try {
       await savePreferences({ ...pref, userId: user?.id, salaryExpectationMin: pref.salaryExpectationMin ? Number(pref.salaryExpectationMin) : null, salaryExpectationMax: pref.salaryExpectationMax ? Number(pref.salaryExpectationMax) : null })
       setPrefSaved(true); setTimeout(() => setPrefSaved(false), 3000)
-    } catch { setPrefError('Erreur lors de la sauvegarde.') }
+    } catch { setPrefError(t.savePrefError) }
     finally  { setPrefSaving(false) }
   }
-
-  const dashPath = user?.role === 'EMPLOYER' ? '/dashboard/employer' : '/dashboard/candidate'
 
   return (
     <div className="st-shell">
@@ -132,7 +101,7 @@ export default function SettingsPage() {
 
         {/* ── Sidebar ── */}
         <aside className="st-sidebar">
-          <h1 className="st-sidebar-title">Paramètres</h1>
+          <h1 className="st-sidebar-title">{t.sidebarTitle}</h1>
           <nav className="st-sidebar-nav">
             {SECTIONS.map(s => (
               <button
@@ -160,98 +129,84 @@ export default function SettingsPage() {
           {/* Account settings */}
           {activeSection === 'account' && (
             <div className="st-panel">
-              <h2 className="st-panel-title">Paramètres du compte</h2>
+              <h2 className="st-panel-title">{t.sections.account.label}</h2>
               <hr className="st-hr" />
 
               <div className="st-row">
                 <div className="st-row-left">
-                  <p className="st-row-label">Type de compte :</p>
-                  <p className="st-row-value">{user?.role === 'EMPLOYER' ? 'Employeur' : 'Chercheur d\'emploi'}</p>
+                  <p className="st-row-label">{t.accountType}</p>
+                  <p className="st-row-value">{user?.role === 'EMPLOYER' ? t.employer : t.jobSeeker}</p>
                 </div>
-                <button className="st-row-btn">Modifier le type du compte</button>
               </div>
               <hr className="st-hr" />
 
               <div className="st-row">
                 <div className="st-row-left">
-                  <p className="st-row-label">Email</p>
+                  <p className="st-row-label">{t.email}</p>
                   <p className="st-row-value">{user?.email}</p>
                 </div>
-                <button className="st-row-btn">Modifier l&apos;adresse email</button>
               </div>
               <hr className="st-hr" />
 
               <div className="st-row">
                 <div className="st-row-left">
-                  <p className="st-row-label">Numéro de téléphone</p>
+                  <p className="st-row-label">{t.phoneNumber}</p>
                   <p className="st-row-value">{user?.phoneNumber || '—'}</p>
-                </div>
-                <button className="st-row-btn">Modifier le numéro de téléphone</button>
-              </div>
-              <hr className="st-hr" />
-
-              <div className="st-row">
-                <div className="st-row-left">
-                  <p className="st-row-label">Clé d&apos;accès</p>
-                </div>
-                <div className="st-row-btns">
-                  <button className="st-row-btn">Créer une clé d&apos;accès</button>
-                  <button className="st-row-btn">Gérer les clés d&apos;accès</button>
                 </div>
               </div>
               <hr className="st-hr" />
 
               <div className="st-row">
                 <p className="st-row-value">{user?.email}</p>
-                <button className="st-row-btn" onClick={handleLogout}>Déconnexion</button>
+                <button className="st-row-btn" onClick={handleLogout}>{t.logout}</button>
               </div>
               <hr className="st-hr" />
 
-              <button className="st-danger-btn" onClick={() => setShowDeletionModal(true)}>Fermer mon compte</button>
+              <button className="st-danger-btn" onClick={() => setShowDeletionModal(true)}>{t.closeAccount}</button>
             </div>
           )}
 
           {/* Security settings */}
           {activeSection === 'security' && (
             <div className="st-panel">
-              <h2 className="st-panel-title">Paramètres de sécurité <span className="st-badge">Nouveau</span></h2>
+              <h2 className="st-panel-title">{t.sections.security.label} <span className="st-badge">{t.sections.security.badge}</span></h2>
               <hr className="st-hr" />
-              <h3 className="st-sub-title">Protection du compte</h3>
+              <h3 className="st-sub-title">{t.accountProtection}</h3>
               <TwoFactorSetup />
               <hr className="st-hr" />
-              <h3 className="st-sub-title">Applications tierces</h3>
+              <h3 className="st-sub-title">{t.thirdPartyApps}</h3>
               <hr className="st-hr" />
-              <p className="st-empty-text">Aucune application tierce n&apos;a accès à votre compte.</p>
+              <p className="st-empty-text">{t.noThirdPartyApps}</p>
             </div>
           )}
 
           {/* Communication settings */}
           {activeSection === 'communication' && (
             <div className="st-panel">
-              <h2 className="st-panel-title">Paramètres de communication</h2>
+              <h2 className="st-panel-title">{t.sections.communication.label}</h2>
               <hr className="st-hr" />
 
               <div className="st-row st-row--link">
-                <p className="st-row-label-big">Adresse email</p>
+                <p className="st-row-label-big">{t.emailAddress}</p>
                 <ChevronRight size={18} className="st-row-arrow" />
               </div>
               <hr className="st-hr" />
 
               <div className="st-row st-row--link">
-                <p className="st-row-label-big">SMS</p>
+                <p className="st-row-label-big">{t.sms}</p>
                 <ChevronRight size={18} className="st-row-arrow" />
               </div>
               <hr className="st-hr" />
 
               <div className="st-toggle-row">
                 <div className="st-toggle-text">
-                  <p className="st-toggle-label">Afficher le statut En ligne</p>
-                  <p className="st-toggle-sub">Montrez aux personnes avec qui vous conversez que vous êtes en ligne sur SkillSet. Si cette option est désactivée, celles-ci ne verront pas votre statut « En ligne ».</p>
+                  <p className="st-toggle-label">{t.showOnlineStatus}</p>
+                  <p className="st-toggle-sub">{t.showOnlineStatusSub}</p>
                 </div>
                 <button
                   className={`st-toggle ${onlineStatus ? 'st-toggle--on' : ''}`}
                   onClick={() => setOnlineStatus(v => !v)}
-                  aria-label="Statut en ligne"
+                  aria-label={t.onlineStatusAria}
                 >
                   <span className="st-toggle-knob" />
                 </button>
@@ -260,13 +215,13 @@ export default function SettingsPage() {
 
               <div className="st-toggle-row">
                 <div className="st-toggle-text">
-                  <p className="st-toggle-label">Afficher les accusés de lecture</p>
-                  <p className="st-toggle-sub">Lorsque vous avez lu un message, notifiez-en les personnes qui vous l&apos;ont envoyé. Si cette option est désactivée, ces personnes ne verront pas quand vous avez lu leurs messages.</p>
+                  <p className="st-toggle-label">{t.showReadReceipts}</p>
+                  <p className="st-toggle-sub">{t.showReadReceiptsSub}</p>
                 </div>
                 <button
                   className={`st-toggle ${readReceipts ? 'st-toggle--on' : ''}`}
                   onClick={() => setReadReceipts(v => !v)}
-                  aria-label="Accusés de lecture"
+                  aria-label={t.readReceiptsAria}
                 >
                   <span className="st-toggle-knob" />
                 </button>
@@ -278,16 +233,16 @@ export default function SettingsPage() {
           {/* Devices */}
           {activeSection === 'devices' && (
             <div className="st-panel">
-              <h2 className="st-panel-title">Gestion des appareils</h2>
+              <h2 className="st-panel-title">{t.sections.devices.label}</h2>
               <hr className="st-hr" />
-              <p className="st-devices-hint">Vous êtes actuellement connecté(e) à votre compte SkillSet sur ces appareils.</p>
+              <p className="st-devices-hint">{t.devicesHint}</p>
               <table className="st-devices-table">
                 <thead>
                   <tr>
-                    <th>Appareil</th>
-                    <th>Date de connexion</th>
-                    <th>Adresse IP</th>
-                    <th>Actions</th>
+                    <th>{t.device}</th>
+                    <th>{t.loginDate}</th>
+                    <th>{t.ipAddress}</th>
+                    <th>{t.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -296,7 +251,7 @@ export default function SettingsPage() {
                       <td>{d.device}</td>
                       <td>{d.loginDate}</td>
                       <td>{d.ip}<br /><span className="st-city">{d.city}</span></td>
-                      <td>{d.current ? <em className="st-current-device">Cet appareil</em> : <button className="st-row-btn">Déconnecter</button>}</td>
+                      <td>{d.current && <em className="st-current-device">{t.thisDevice}</em>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -307,31 +262,31 @@ export default function SettingsPage() {
           {/* Privacy */}
           {activeSection === 'privacy' && (
             <div className="st-panel">
-              <h2 className="st-panel-title">Paramètres de confidentialité</h2>
+              <h2 className="st-panel-title">{t.sections.privacy.label}</h2>
               <hr className="st-hr" />
-              <p className="st-empty-text">Vos données personnelles sont protégées conformément à notre politique de confidentialité.</p>
+              <p className="st-empty-text">{t.privacyProtected}</p>
               <hr className="st-hr" />
               <div className="st-row st-row--link" onClick={() => setShowExportModal(true)} style={{ cursor: 'pointer' }}>
-                <p className="st-row-label-big">Télécharger mes données</p>
+                <p className="st-row-label-big">{t.downloadMyData}</p>
                 <ChevronRight size={18} className="st-row-arrow" />
               </div>
               <hr className="st-hr" />
               <div className="st-row st-row--link">
-                <p className="st-row-label-big">Supprimer mes données</p>
+                <p className="st-row-label-big">{t.deleteMyData}</p>
                 <ChevronRight size={18} className="st-row-arrow" />
               </div>
               <hr className="st-hr" />
 
               <div className="st-section">
-                <h2 className="st-section-title">Confidentialité &amp; Consentements</h2>
+                <h2 className="st-section-title">{t.privacyConsents}</h2>
                 {consentsLoading ? (
                   <div className="st-loading"><Loader2 size={18} className="st-spin" /></div>
                 ) : (
                   <>
                     <div className="st-row">
                       <div>
-                        <p className="st-row-label-big">Cookies analytiques</p>
-                        <p className="st-row-label-small">Nous aident à améliorer SkillSet</p>
+                        <p className="st-row-label-big">{t.analyticsCookies}</p>
+                        <p className="st-row-label-small">{t.analyticsCookiesSub}</p>
                       </div>
                       <label className="st-toggle">
                         <input
@@ -344,8 +299,8 @@ export default function SettingsPage() {
                     </div>
                     <div className="st-row">
                       <div>
-                        <p className="st-row-label-big">Communications marketing</p>
-                        <p className="st-row-label-small">Offres d&apos;emploi et actualités SkillSet</p>
+                        <p className="st-row-label-big">{t.marketingComms}</p>
+                        <p className="st-row-label-small">{t.marketingCommsSub}</p>
                       </div>
                       <label className="st-toggle">
                         <input
@@ -358,8 +313,8 @@ export default function SettingsPage() {
                     </div>
                     <div className="st-row">
                       <div>
-                        <p className="st-row-label-big">Traitement IA — matching &amp; STELLA</p>
-                        <p className="st-row-label-small">Personnalisation du matching et chatbot</p>
+                        <p className="st-row-label-big">{t.aiProcessing}</p>
+                        <p className="st-row-label-small">{t.aiProcessingSub}</p>
                       </div>
                       <label className="st-toggle">
                         <input
@@ -379,7 +334,7 @@ export default function SettingsPage() {
           {/* Preferences */}
           {activeSection === 'preferences' && (
             <div className="st-panel">
-              <h2 className="st-panel-title">Préférences emploi</h2>
+              <h2 className="st-panel-title">{t.sections.preferences.label}</h2>
               <hr className="st-hr" />
               {prefLoading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Loader2 size={24} className="st-spin" /></div>
@@ -388,43 +343,43 @@ export default function SettingsPage() {
                   {prefError && <p style={{ color: '#c42033', fontSize: 13, marginBottom: 12 }}>{prefError}</p>}
                   <div className="st-pref-grid">
                     <div className="st-pref-field">
-                      <label className="st-row-label">Types de contrat souhaités</label>
-                      <input className="st-pref-input" placeholder="CDI, CDD, Freelance…" value={pref.preferredJobTypes} onChange={e => setPref(p => ({ ...p, preferredJobTypes: e.target.value }))} />
+                      <label className="st-row-label">{t.desiredContractTypes}</label>
+                      <input className="st-pref-input" placeholder={t.contractTypesPlaceholder} value={pref.preferredJobTypes} onChange={e => setPref(p => ({ ...p, preferredJobTypes: e.target.value }))} />
                     </div>
                     <div className="st-pref-field">
-                      <label className="st-row-label">Localisations préférées</label>
-                      <input className="st-pref-input" placeholder="Douala, Yaoundé, Remote…" value={pref.preferredLocations} onChange={e => setPref(p => ({ ...p, preferredLocations: e.target.value }))} />
+                      <label className="st-row-label">{t.preferredLocations}</label>
+                      <input className="st-pref-input" placeholder={t.locationsPlaceholder} value={pref.preferredLocations} onChange={e => setPref(p => ({ ...p, preferredLocations: e.target.value }))} />
                     </div>
                     <div className="st-pref-field">
-                      <label className="st-row-label">Secteurs d&apos;activité</label>
-                      <input className="st-pref-input" placeholder="Tech, Finance, Santé…" value={pref.preferredIndustries} onChange={e => setPref(p => ({ ...p, preferredIndustries: e.target.value }))} />
+                      <label className="st-row-label">{t.sectors}</label>
+                      <input className="st-pref-input" placeholder={t.sectorsPlaceholder} value={pref.preferredIndustries} onChange={e => setPref(p => ({ ...p, preferredIndustries: e.target.value }))} />
                     </div>
                     <div className="st-pref-field">
-                      <label className="st-row-label">Salaire min. attendu (FCFA/mois)</label>
+                      <label className="st-row-label">{t.minSalary}</label>
                       <input className="st-pref-input" type="number" placeholder="150000" value={pref.salaryExpectationMin} onChange={e => setPref(p => ({ ...p, salaryExpectationMin: e.target.value }))} />
                     </div>
                     <div className="st-pref-field">
-                      <label className="st-row-label">Salaire max. attendu (FCFA/mois)</label>
+                      <label className="st-row-label">{t.maxSalary}</label>
                       <input className="st-pref-input" type="number" placeholder="500000" value={pref.salaryExpectationMax} onChange={e => setPref(p => ({ ...p, salaryExpectationMax: e.target.value }))} />
                     </div>
                   </div>
                   <hr className="st-hr" />
                   <div className="st-toggle-row">
                     <div className="st-toggle-text">
-                      <p className="st-toggle-label">Notifications push activées</p>
-                      <p className="st-toggle-sub">Recevoir des notifications en temps réel sur les nouvelles offres et mises à jour.</p>
+                      <p className="st-toggle-label">{t.pushNotifications}</p>
+                      <p className="st-toggle-sub">{t.pushNotificationsSub}</p>
                     </div>
-                    <button className={`st-toggle ${pref.notificationsEnabled ? 'st-toggle--on' : ''}`} onClick={() => setPref(p => ({ ...p, notificationsEnabled: !p.notificationsEnabled }))} aria-label="Notifications">
+                    <button className={`st-toggle ${pref.notificationsEnabled ? 'st-toggle--on' : ''}`} onClick={() => setPref(p => ({ ...p, notificationsEnabled: !p.notificationsEnabled }))} aria-label={t.notificationsAria}>
                       <span className="st-toggle-knob" />
                     </button>
                   </div>
                   <hr className="st-hr" />
                   <div className="st-toggle-row">
                     <div className="st-toggle-text">
-                      <p className="st-toggle-label">Alertes email activées</p>
-                      <p className="st-toggle-sub">Recevoir des résumés hebdomadaires et alertes offres par email.</p>
+                      <p className="st-toggle-label">{t.emailAlerts}</p>
+                      <p className="st-toggle-sub">{t.emailAlertsSub}</p>
                     </div>
-                    <button className={`st-toggle ${pref.emailAlertsEnabled ? 'st-toggle--on' : ''}`} onClick={() => setPref(p => ({ ...p, emailAlertsEnabled: !p.emailAlertsEnabled }))} aria-label="Alertes email">
+                    <button className={`st-toggle ${pref.emailAlertsEnabled ? 'st-toggle--on' : ''}`} onClick={() => setPref(p => ({ ...p, emailAlertsEnabled: !p.emailAlertsEnabled }))} aria-label={t.emailAlertsAria}>
                       <span className="st-toggle-knob" />
                     </button>
                   </div>
@@ -432,9 +387,9 @@ export default function SettingsPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <button className="st-save-btn" onClick={handleSavePref} disabled={prefSaving}>
                       {prefSaving ? <Loader2 size={14} className="st-spin" /> : null}
-                      {prefSaving ? 'Sauvegarde…' : 'Sauvegarder'}
+                      {prefSaving ? t.saving : t.save}
                     </button>
-                    {prefSaved && <span style={{ color: '#166534', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}><CheckCircle size={14} /> Sauvegardé</span>}
+                    {prefSaved && <span style={{ color: '#166534', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}><CheckCircle size={14} /> {t.saved}</span>}
                   </div>
                 </>
               )}

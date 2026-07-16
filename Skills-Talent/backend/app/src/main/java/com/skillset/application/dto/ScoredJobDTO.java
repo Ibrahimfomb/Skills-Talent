@@ -20,6 +20,7 @@ public record ScoredJobDTO(
         Double experiencePoints,
         Double locationPoints,
         Double availabilityPoints,
-        Double titlePoints
+        Double titlePoints,
+        Double domainPoints
     ) {}
 }

@@ -1,18 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/AuthStore'
-import { useOnboardingAiStore } from '../../store/onboardingAiStore'
-import { generateQuestions, completeOnboarding } from '../../api/OnboardingApi'
-import { ChevronRight, ChevronLeft, FileText, CheckCircle2, X } from 'lucide-react'
+import { generateQuestions, generateCv, completeOnboarding } from '../../api/OnboardingApi'
+import { ChevronRight, ChevronLeft, CheckCircle2, X } from 'lucide-react'
 import MapPicker from '../../components/MapPicker'
 import StellaLoader from '../../components/StellaLoader'
-import AiQuestionCard from '../../features/onboarding/AiQuestionCard'
 import PhaseIndicator from '../../features/onboarding/PhaseIndicator'
 import CvGenerationScreen from '../../features/onboarding/CvGenerationScreen'
 import { getJobsForDomain } from '../../data/domainJobs'
+import { useTranslation } from '../../i18n/translations'
 import './OnboardingPage.css'
 
-/* ─── Static data ───────────────────────────────────────────────── */
+/* ─── Static data (reference lists — kept in French) ─────────────── */
 const INDUSTRIES = [
   'Informatique & Développement logiciel', 'Intelligence Artificielle & Machine Learning',
   'Cybersécurité', 'Cloud Computing', 'E-commerce & Marketplaces',
@@ -30,7 +29,9 @@ const INDUSTRIES = [
   'Maritime & Ports', 'Aviation', 'Tourisme & Hôtellerie', 'Restauration',
   'Événementiel', 'Médias & Presse', 'Production audiovisuelle', 'Arts & Culture',
   'Sport & Loisirs', 'ONG & Associations', 'Administration publique',
-  'Sécurité & Défense', 'Autre',
+  'Sécurité & Défense', 'Artisanat & Métiers manuels', 'Beauté & Bien-être',
+  'Boulangerie, Pâtisserie & Métiers de bouche', 'Nettoyage & Services à la personne',
+  'Autre',
 ]
 
 const COUNTRIES = [
@@ -67,178 +68,153 @@ const OPTIONAL_IDS = [
   'candidateLinkedIn', 'workAuthorization', 'hasReferences',
 ]
 
-/* ─── Question builders ─────────────────────────────────────────── */
-function getCandidateInitialQuestions(answers) {
+/* ─── Question builders (initial, role-specific) ────────────────── */
+function getCandidateInitialQuestions(answers, t) {
   const domain = answers.domain || ''
   const domainJobs = getJobsForDomain(domain)
 
   return [
     {
       id: 'domain',
-      text: "Votre domaine professionnel",
+      text: t.questions.domain,
       type: 'searchable_choice',
       options: INDUSTRIES,
-      placeholder: 'Ex : Informatique, Finance, Santé…',
+      placeholder: t.questions.domainPlaceholder,
     },
     {
       id: 'desiredRole',
       text: domain
-        ? `Poste recherché dans « ${domain.split('&')[0].trim()} »`
-        : 'Poste recherché',
+        ? `${t.questions.desiredRoleFor} ${domain.split('&')[0].trim()} »`
+        : t.questions.desiredRole,
       type: domainJobs.length > 0 ? 'searchable_choice' : 'text',
       options: domainJobs,
-      placeholder: 'Ex : Développeur Full Stack, Comptable…',
+      placeholder: t.questions.desiredRolePlaceholder,
     },
     {
       id: 'experienceLevel',
-      text: "Niveau d'expérience",
+      text: t.questions.experienceLevel,
       type: 'single_choice',
-      options: ['Junior (0-2 ans)', 'Intermédiaire (2-5 ans)', 'Senior (5-10 ans)', 'Expert (10+ ans)'],
+      options: t.questions.experienceLevels,
     },
     {
       id: 'contractType',
-      text: 'Type(s) de contrat souhaité(s)',
+      text: t.questions.contractTypeCandidate,
       type: 'multi_choice',
-      options: ['CDI', 'CDD', 'Freelance', 'Stage', 'Alternance', 'Intérim', 'Autre'],
+      options: t.questions.contractTypes,
     },
-    // Country + City combined in one card
     {
       id: 'candidateLocation',
       type: 'country_city',
-      text: 'Pays et ville de résidence / travail',
+      text: t.questions.candidateLocation,
       countryId: 'candidateCountry',
       cityId: 'candidateCity',
     },
-    // ── Sécurité & Traçabilité ──
     {
       id: 'candidateLinkedIn',
-      text: 'Profil LinkedIn (optionnel)',
+      text: t.questions.candidateLinkedIn,
       type: 'text',
       placeholder: 'https://linkedin.com/in/votre-profil',
     },
     {
       id: 'workAuthorization',
-      text: `Êtes-vous autorisé(e) à travailler légalement${answers.candidateCountry ? ' en ' + answers.candidateCountry : ' dans ce pays'} ?`,
+      text: `${t.questions.workAuthorization}${answers.candidateCountry ? t.questions.workAuthorizationIn + answers.candidateCountry : t.questions.workAuthorizationFallback} ?`,
       type: 'single_choice',
-      options: [
-        'Oui, citoyen(ne) ou résident(e) permanent(e)',
-        'Oui, visa de travail valide',
-        'En cours de régularisation',
-        "Besoin d'un visa ou permis de travail",
-        'Préfère ne pas répondre',
-      ],
+      options: t.questions.workAuthorizationOptions,
     },
     {
       id: 'hasReferences',
-      text: 'Avez-vous des références professionnelles disponibles ?',
+      text: t.questions.hasReferences,
       type: 'single_choice',
-      options: [
-        'Oui, 2 références ou plus (joignables)',
-        'Oui, 1 référence professionnelle',
-        'Références en cours de constitution',
-        'Non disponibles pour le moment',
-      ],
+      options: t.questions.hasReferencesOptions,
     },
   ]
 }
 
-function getEmployerInitialQuestions(answers) {
+function getEmployerInitialQuestions(answers, t) {
   const industry = answers.industry || ''
   const countryName = answers.companyCountry || ''
 
   return [
     {
       id: 'companyName',
-      text: "Nom de votre entreprise",
+      text: t.questions.companyName,
       type: 'text',
-      placeholder: 'Ex : Nabil SAS, TechSolutions Africa…',
+      placeholder: t.questions.companyNamePlaceholder,
     },
     {
       id: 'industry',
-      text: "Secteur d'activité",
+      text: t.questions.industry,
       type: 'searchable_choice',
       options: INDUSTRIES,
-      placeholder: 'Tapez pour rechercher un secteur…',
+      placeholder: t.questions.industryPlaceholder,
     },
     {
       id: 'companyLocation',
       type: 'country_city',
-      text: "Pays et ville du siège social",
+      text: t.questions.companyLocation,
       countryId: 'companyCountry',
       cityId: 'companyCity',
     },
     {
       id: 'companySize',
-      text: "Taille de votre entreprise",
+      text: t.questions.companySize,
       type: 'single_choice',
-      options: ['1-10 employés (Start-up)', '11-50 employés (PME)', '51-200 employés (ETI)', '201-500 employés', '500+ (Grande entreprise)', 'Autre'],
+      options: t.questions.companySizeOptions,
     },
     {
       id: 'hiringRole',
       text: industry
-        ? `Profil recherché dans « ${industry.split('&')[0].trim()} »`
-        : 'Profil recherché en priorité',
+        ? `${t.questions.hiringRoleFor} ${industry.split('&')[0].trim()} »`
+        : t.questions.hiringRole,
       type: 'text',
-      placeholder: 'Ex : Développeur React, Responsable RH, Commercial B2B…',
+      placeholder: t.questions.hiringRolePlaceholder,
     },
     {
       id: 'contractType',
-      text: 'Type(s) de contrat proposé(s)',
+      text: t.questions.contractTypeEmployer,
       type: 'multi_choice',
-      options: ['CDI', 'CDD', 'Alternance', 'Stage', 'Freelance', 'Intérim', 'Autre'],
+      options: t.questions.contractTypes,
     },
     {
       id: 'companyDescription',
-      text: "Décrivez brièvement votre entreprise",
+      text: t.questions.companyDescription,
       type: 'text',
-      placeholder: 'Ex : Nous développons des solutions SaaS pour les PME africaines…',
+      placeholder: t.questions.companyDescriptionPlaceholder,
     },
     {
       id: 'companyRegistrationNumber',
-      text: countryName === 'France' ? 'Numéro SIRET' : "Numéro d'immatriculation officiel",
+      text: countryName === 'France' ? t.questions.registrationNumberFrance : t.questions.registrationNumberOther,
       type: 'text',
-      placeholder: countryName === 'France' ? 'Ex : 123 456 789 00012' : "Numéro d'enregistrement légal",
+      placeholder: countryName === 'France' ? t.questions.registrationPlaceholderFrance : t.questions.registrationPlaceholderOther,
     },
     {
       id: 'companyWebsite',
-      text: "Site web de l'entreprise",
+      text: t.questions.companyWebsite,
       type: 'text',
       placeholder: 'https://monentreprise.com',
     },
     {
       id: 'companyLinkedIn',
-      text: 'Page LinkedIn (optionnel)',
+      text: t.questions.companyLinkedIn,
       type: 'text',
       placeholder: 'https://linkedin.com/company/monentreprise',
     },
     {
       id: 'companyAddress',
-      text: 'Adresse complète du siège social',
+      text: t.questions.companyAddress,
       type: 'text',
-      placeholder: 'Ex : 12 rue de la Paix, 75001 Paris',
+      placeholder: t.questions.companyAddressPlaceholder,
     },
     {
       id: 'companyMap',
-      text: 'Situez votre entreprise sur la carte',
+      text: t.questions.companyMap,
       type: 'map',
     },
   ]
 }
 
-/* ─── Progress bar ──────────────────────────────────────────────── */
-function ProgressBar({ current, total }) {
-  return (
-    <div className="ob-progress">
-      <div className="ob-progress-track">
-        <div className="ob-progress-fill" style={{ width: `${(current / total) * 100}%` }} />
-      </div>
-      <span className="ob-progress-label">Étape {current} / {total}</span>
-    </div>
-  )
-}
-
 /* ─── Searchable choice ─────────────────────────────────────────── */
-function SearchableChoiceCard({ question, value, onChange }) {
+function SearchableChoiceCard({ question, value, onChange, t }) {
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
   const options = question.options || []
@@ -256,7 +232,7 @@ function SearchableChoiceCard({ question, value, onChange }) {
       {value ? (
         <div className="ob-selected-chip">
           <span>{value}</span>
-          <button type="button" onClick={handleClear} aria-label="Supprimer"><X size={14} /></button>
+          <button type="button" onClick={handleClear} aria-label={t.remove}><X size={14} /></button>
         </div>
       ) : (
         <div className="ob-dropdown-container">
@@ -266,7 +242,7 @@ function SearchableChoiceCard({ question, value, onChange }) {
             onChange={e => { setSearch(e.target.value); setOpen(true) }}
             onFocus={() => setOpen(true)}
             onBlur={() => setTimeout(() => setOpen(false), 200)}
-            placeholder={question.placeholder || 'Tapez pour rechercher…'}
+            placeholder={question.placeholder || t.searchPlaceholder}
           />
           {open && (
             <div className="ob-dropdown">
@@ -275,7 +251,7 @@ function SearchableChoiceCard({ question, value, onChange }) {
               ))}
               {search.length > 1 && !options.find(o => o.toLowerCase() === search.toLowerCase()) && (
                 <div className="ob-dropdown-item ob-dropdown-item--custom" onMouseDown={() => handleSelect(search)}>
-                  Utiliser « {search} »
+                  {t.useCustom} {search} »
                 </div>
               )}
             </div>
@@ -286,31 +262,29 @@ function SearchableChoiceCard({ question, value, onChange }) {
   )
 }
 
-/* ─── Country + City combined (IMPROVED for dynamic adaptation) ───────────────────────────────────── */
-function CountryCityCard({ question, answers, onChange }) {
+/* ─── Country + City combined ────────────────────────────────────── */
+function CountryCityCard({ question, answers, onChange, t }) {
   const countryVal = answers[question.countryId] || ''
   const cityVal    = answers[question.cityId]    || ''
   const countryCode = getCountryCode(countryVal)
 
-  // Country search state
   const [cSearch, setCSearch] = useState('')
   const [cOpen, setCOpen]     = useState(false)
   const filteredCountries = COUNTRIES.filter(c =>
     c.name.toLowerCase().includes(cSearch.toLowerCase())
   )
 
-  // City search state
   const [cityInput, setCityInput]   = useState(cityVal || '')
   const [citySugs, setCitySugs]     = useState([])
   const [cityOpen, setCityOpen]     = useState(false)
   const debounceRef = useRef(null)
 
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       if (!cityVal) { setCityInput(''); setCitySugs([]) }
       else setCityInput(cityVal)
     }, 0)
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer)
   }, [cityVal, countryCode])
 
   const fetchCities = async (q) => {
@@ -326,12 +300,12 @@ function CountryCityCard({ question, answers, onChange }) {
   }
 
   const handleCountrySelect = (c) => {
-    const countryName = c.code === '' ? (cSearch || 'Autre') : c.name
+    const countryName = c.code === '' ? (cSearch || t.other) : c.name
     onChange(question.countryId, countryName)
-    onChange(question.cityId, '') // reset city when country changes
+    onChange(question.cityId, '')
     setCSearch('');
     setCOpen(false)
-    setCityInput('') // Clear city input
+    setCityInput('')
     setCitySugs([])
   }
 
@@ -360,11 +334,11 @@ function CountryCityCard({ question, answers, onChange }) {
 
       {/* Country row */}
       <div className="ob-location-row">
-        <span className="ob-location-label">Pays</span>
+        <span className="ob-location-label">{t.country}</span>
         {countryVal ? (
           <div className="ob-selected-chip ob-selected-chip--inline">
             <span>{countryVal}</span>
-            <button type="button" onClick={() => { onChange(question.countryId, ''); onChange(question.cityId, ''); setCityInput(''); setCitySugs([]); }} aria-label="Changer de pays"><X size={13} /></button>
+            <button type="button" onClick={() => { onChange(question.countryId, ''); onChange(question.cityId, ''); setCityInput(''); setCitySugs([]); }} aria-label={t.changeCountry}><X size={13} /></button>
           </div>
         ) : (
           <div className="ob-dropdown-container ob-dropdown-container--flex">
@@ -374,7 +348,7 @@ function CountryCityCard({ question, answers, onChange }) {
               onChange={e => { setCSearch(e.target.value); setCOpen(true) }}
               onFocus={() => setCOpen(true)}
               onBlur={() => setTimeout(() => setCOpen(false), 200)}
-              placeholder="Choisir un pays…"
+              placeholder={t.choosCountry}
             />
             {cOpen && (
               <div className="ob-dropdown">
@@ -383,7 +357,7 @@ function CountryCityCard({ question, answers, onChange }) {
                 ))}
                 {cSearch.length > 1 && !COUNTRIES.find(c => c.name.toLowerCase() === cSearch.toLowerCase()) && (
                   <div className="ob-dropdown-item ob-dropdown-item--custom" onMouseDown={() => handleCountrySelect({ name: cSearch, code: '' })}>
-                    Utiliser « {cSearch} »
+                    {t.useCustom} {cSearch} »
                   </div>
                 )}
               </div>
@@ -395,7 +369,7 @@ function CountryCityCard({ question, answers, onChange }) {
       {/* City row — only shown when country is selected */}
       {countryVal && (
         <div className="ob-location-row ob-location-row--city">
-          <span className="ob-location-label">Ville</span>
+          <span className="ob-location-label">{t.city}</span>
           <div className="ob-dropdown-container ob-dropdown-container--flex">
             <input
               className="ob-input"
@@ -403,7 +377,7 @@ function CountryCityCard({ question, answers, onChange }) {
               onChange={handleCityInput}
               onBlur={() => setTimeout(() => setCityOpen(false), 200)}
               onFocus={() => citySugs.length > 0 && setCityOpen(true)}
-              placeholder={`Saisir une ville…`}
+              placeholder={t.cityPlaceholder}
             />
             {cityOpen && citySugs.length > 0 && (
               <div className="ob-dropdown">
@@ -420,12 +394,12 @@ function CountryCityCard({ question, answers, onChange }) {
 }
 
 /* ─── Single choice ─────────────────────────────────────────────── */
-function SingleChoiceCard({ question, value, onChange }) {
+function SingleChoiceCard({ question, value, onChange, t }) {
   const options = question.options || []
-  const hasOther = options.includes('Autre')
-  const stdOpts  = hasOther ? options.filter(o => o !== 'Autre') : options
+  const hasOther = options.includes(t.other)
+  const stdOpts  = hasOther ? options.filter(o => o !== t.other) : options
   const isCustom = value && !options.includes(value)
-  const isOtherActive = value === 'Autre' || isCustom
+  const isOtherActive = value === t.other || isCustom
   const otherText = isCustom ? value : ''
 
   return (
@@ -440,32 +414,32 @@ function SingleChoiceCard({ question, value, onChange }) {
         {hasOther && (
           <button type="button"
             className={`ob-choice ${isOtherActive ? 'ob-choice--active' : ''}`}
-            onClick={() => onChange(question.id, isOtherActive ? '' : 'Autre')}>Autre</button>
+            onClick={() => onChange(question.id, isOtherActive ? '' : t.other)}>{t.other}</button>
         )}
       </div>
       {isOtherActive && (
-        <input className="ob-input ob-other-input" placeholder="Précisez…"
+        <input className="ob-input ob-other-input" placeholder={t.specify}
           value={otherText} autoFocus
-          onChange={e => onChange(question.id, e.target.value || 'Autre')} />
+          onChange={e => onChange(question.id, e.target.value || t.other)} />
       )}
     </div>
   )
 }
 
 /* ─── Multi choice ──────────────────────────────────────────────── */
-function MultiChoiceCard({ question, value, onChange }) {
+function MultiChoiceCard({ question, value, onChange, t }) {
   const options  = question.options || []
-  const hasOther = options.includes('Autre')
-  const stdOpts  = hasOther ? options.filter(o => o !== 'Autre') : options
+  const hasOther = options.includes(t.other)
+  const stdOpts  = hasOther ? options.filter(o => o !== t.other) : options
   const selected = value ? value.split(',').filter(Boolean) : []
   const stdSel   = selected.filter(v => stdOpts.includes(v))
   const customVals = selected.filter(v => !options.includes(v))
-  const isOtherActive = selected.includes('Autre') || customVals.length > 0
+  const isOtherActive = selected.includes(t.other) || customVals.length > 0
   const customText = customVals[0] || ''
 
   const build = (std, otherOn, text) => {
     if (otherOn && text) return [...std, text].join(',')
-    if (otherOn) return [...std, 'Autre'].join(',')
+    if (otherOn) return [...std, t.other].join(',')
     return std.join(',')
   }
 
@@ -477,7 +451,7 @@ function MultiChoiceCard({ question, value, onChange }) {
   return (
     <div className="ob-question">
       <p className="ob-question-text">{question.text}</p>
-      <p className="ob-question-hint">Plusieurs choix possibles</p>
+      <p className="ob-question-hint">{t.multiChoiceHint}</p>
       <div className="ob-choices ob-choices--multi">
         {stdOpts.map(opt => (
           <button key={opt} type="button"
@@ -487,11 +461,11 @@ function MultiChoiceCard({ question, value, onChange }) {
         {hasOther && (
           <button type="button"
             className={`ob-choice ${isOtherActive ? 'ob-choice--active' : ''}`}
-            onClick={() => onChange(question.id, build(stdSel, !isOtherActive, ''))}>Autre</button>
+            onClick={() => onChange(question.id, build(stdSel, !isOtherActive, ''))}>{t.other}</button>
         )}
       </div>
       {isOtherActive && (
-        <input className="ob-input ob-other-input" placeholder="Précisez…"
+        <input className="ob-input ob-other-input" placeholder={t.specify}
           value={customText} autoFocus
           onChange={e => onChange(question.id, build(stdSel, true, e.target.value))} />
       )}
@@ -499,25 +473,26 @@ function MultiChoiceCard({ question, value, onChange }) {
   )
 }
 
-/* ─── Question dispatcher ───────────────────────────────────────── */
-function QuestionCard({ question, value, answers, onChange, onSideEffect }) {
+/* ─── Question dispatcher — shared by initial AND AI-generated questions ── */
+function QuestionCard({ question, value, answers, onChange, onSideEffect, t }) {
   if (question.type === 'country_city') {
     return (
       <CountryCityCard
         question={question}
         answers={answers}
         onChange={(id, val) => onChange(id, val)}
+        t={t}
       />
     )
   }
   if (question.type === 'searchable_choice') {
-    return <SearchableChoiceCard question={question} value={value} onChange={onChange} />
+    return <SearchableChoiceCard question={question} value={value} onChange={onChange} t={t} />
   }
   if (question.type === 'single_choice') {
-    return <SingleChoiceCard question={question} value={value} onChange={onChange} />
+    return <SingleChoiceCard question={question} value={value} onChange={onChange} t={t} />
   }
   if (question.type === 'multi_choice') {
-    return <MultiChoiceCard question={question} value={value} onChange={onChange} />
+    return <MultiChoiceCard question={question} value={value} onChange={onChange} t={t} />
   }
   if (question.type === 'text' || question.type === 'number') {
     return (
@@ -551,26 +526,47 @@ function QuestionCard({ question, value, answers, onChange, onSideEffect }) {
 /* ─── Constants ─────────────────────────────────────────────────── */
 const ROLE_ROUTES = { CANDIDATE: '/dashboard/candidate', EMPLOYER: '/dashboard/employer' }
 
+/**
+ * Builds the PreviousAnswerDTO-shaped list the backend expects for CV
+ * generation, from the combined initial + AI answers. Country/city are
+ * normalized to fieldKey "country"/"city" (regardless of the role-specific
+ * question id they came from) since that's the literal key the backend's
+ * buildContext() looks for to drive country-aware CV formatting.
+ */
+function buildAnswerList(initialQuestions, initialAnswers, aiQuestions, aiAnswers) {
+  const fromInitial = initialQuestions.flatMap(q => {
+    if (q.type === 'country_city') {
+      const entries = []
+      if (initialAnswers[q.countryId]) {
+        entries.push({ fieldKey: 'country', question: q.text, answer: initialAnswers[q.countryId], phase: 'INITIAL' })
+      }
+      if (initialAnswers[q.cityId]) {
+        entries.push({ fieldKey: 'city', question: q.text, answer: initialAnswers[q.cityId], phase: 'INITIAL' })
+      }
+      return entries
+    }
+    const val = initialAnswers[q.id]
+    return (val !== undefined && val !== '')
+      ? [{ fieldKey: q.id, question: q.text, answer: val, phase: 'INITIAL' }]
+      : []
+  })
+
+  const fromAi = aiQuestions.flatMap(q => {
+    const val = aiAnswers[q.id]
+    return (val !== undefined && val !== '')
+      ? [{ fieldKey: q.id, question: q.text, answer: val, phase: 'AI' }]
+      : []
+  })
+
+  return [...fromInitial, ...fromAi]
+}
+
 /* ─── Main component ────────────────────────────────────────────── */
 export default function OnboardingPage() {
   const navigate = useNavigate()
   const { user, setAuth } = useAuthStore()
   const role = user?.role || 'CANDIDATE'
-
-  // AI Store
-  const {
-    currentQuestion,
-    previousAnswers,
-    context,
-    isComplete: aiComplete,
-    isLoading: aiLoading,
-    cvUrl,
-    error: aiError,
-    submitAnswer: aiSubmitAnswer,
-    generateCv,
-    initializeOnboarding,
-    resetOnboarding,
-  } = useOnboardingAiStore()
+  const t = useTranslation().onboarding
 
   useEffect(() => {
     if (user?.onboardingCompleted) {
@@ -578,103 +574,161 @@ export default function OnboardingPage() {
     }
   }, [user, role, navigate])
 
-  const totalSteps = role === 'CANDIDATE' ? 4 : 3
-  const [step, setStep] = useState('initial')
+  // 'initial' | 'ai-init' | 'ai' | 'cv-gen' | 'cv' | 'done'
+  const [phase, setPhase] = useState('initial')
   const [initialAnswers, setInitialAnswers] = useState({})
+  const [initialIndex, setInitialIndex] = useState(0)
+  const [aiQuestions, setAiQuestions] = useState([])
+  const [aiIndex, setAiIndex] = useState(0)
+  const [aiAnswers, setAiAnswers] = useState({})
+  const [cvUrl, setCvUrl] = useState(null)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [aiAnswerState, setAiAnswerState] = useState('') // temp state for current AI question
 
   const initialQuestions = role === 'EMPLOYER'
-    ? getEmployerInitialQuestions(initialAnswers)
-    : getCandidateInitialQuestions(initialAnswers)
+    ? getEmployerInitialQuestions(initialAnswers, t)
+    : getCandidateInitialQuestions(initialAnswers, t)
 
-  const setAnswer = (bank, id, val) => {
-    if (bank === 'initial') {
-      setInitialAnswers(prev => {
-        const next = { ...prev, [id]: val }
-        if (id === 'companyCountry' && prev.companyCountry !== val) next.companyCity = ''
-        if (id === 'candidateCountry' && prev.candidateCountry !== val) next.candidateCity = ''
-        if (id === 'domain' && prev.domain !== val) next.desiredRole = ''
-        return next
-      })
-    }
+  const setInitialAnswer = (id, val) => {
+    setInitialAnswers(prev => {
+      const next = { ...prev, [id]: val }
+      if (id === 'companyCountry' && prev.companyCountry !== val) next.companyCity = ''
+      if (id === 'candidateCountry' && prev.candidateCountry !== val) next.candidateCity = ''
+      if (id === 'domain' && prev.domain !== val) next.desiredRole = ''
+      return next
+    })
   }
 
-  const isInitialComplete = () =>
-    initialQuestions
-      .filter(q => !OPTIONAL_IDS.includes(q.id))
-      .every(q => {
-        if (q.type === 'country_city') {
-          return initialAnswers[q.countryId] && String(initialAnswers[q.countryId]).trim()
-        }
-        const val = initialAnswers[q.id]
-        return val && String(val).trim() !== ''
-      })
-
-  const handleInitialNext = async () => {
-    if (!isInitialComplete()) {
-      setError('Merci de répondre à toutes les questions obligatoires.')
-      return
-    }
-    setError('')
-    setStep('ai-init')
-
-    // Initialize AI onboarding with initial answers
-    const jobTitle = initialAnswers.desiredRole || initialAnswers.hiringRole || 'Non spécifié'
-    resetOnboarding()
-    initializeOnboarding(role, jobTitle)
-    setStep('ai')
-  }
-
-  const handleAiAnswer = async () => {
-    if (!aiAnswerState.trim()) {
-      setError('Veuillez répondre à cette question')
-      return
-    }
-    setError('')
-    setAiAnswerState('')
-
-    // Submit answer to Zustand store
-    await aiSubmitAnswer(aiAnswerState)
-  }
-
-  const handleAiComplete = async () => {
-    if (role === 'CANDIDATE') {
-      setStep('cv-gen')
-      // Trigger CV generation
-      const result = await generateCv()
-      if (result) {
-        setStep('cv')
-      } else {
-        setError('Erreur lors de la génération du CV')
-        setStep('ai')
-      }
+  const handleChange = (id, val) => {
+    if (phase === 'ai') {
+      setAiAnswers(prev => ({ ...prev, [id]: val }))
     } else {
-      // Employer flow - complete directly
-      handleComplete(false)
+      setInitialAnswer(id, val)
     }
   }
 
-  const handleComplete = async (cv = false) => {
+  const isInitialQuestionAnswered = (question) => {
+    if (!question) return false
+    if (OPTIONAL_IDS.includes(question.id)) return true
+    if (question.type === 'country_city') {
+      return Boolean(initialAnswers[question.countryId] && String(initialAnswers[question.countryId]).trim())
+    }
+    const val = initialAnswers[question.id]
+    return Boolean(val && String(val).trim() !== '')
+  }
+
+  const isAiQuestionAnswered = (question) => {
+    if (!question) return false
+    const val = aiAnswers[question.id]
+    return Boolean(val && String(val).trim() !== '')
+  }
+
+  const currentInitialQuestion = initialQuestions[initialIndex]
+  const currentAiQuestion = aiQuestions[aiIndex]
+  const currentQuestion = phase === 'ai' ? currentAiQuestion : currentInitialQuestion
+
+  const currentValue = phase === 'ai'
+    ? (aiAnswers[currentAiQuestion?.id] || '')
+    : (initialAnswers[currentInitialQuestion?.id] || '')
+
+  const totalSteps = initialQuestions.length + aiQuestions.length
+  const currentStepNum = phase === 'ai'
+    ? initialQuestions.length + aiIndex + 1
+    : initialIndex + 1
+
+  const startAiPhase = async () => {
+    setError('')
+    setPhase('ai-init')
+    try {
+      const data = await generateQuestions(role, initialAnswers)
+      const questions = data.questions || []
+      setAiQuestions(questions)
+      setAiIndex(0)
+      if (questions.length === 0) {
+        await finishFlow(questions)
+        return
+      }
+      setPhase('ai')
+    } catch (err) {
+      console.error(err)
+      setError(t.genericError)
+      setPhase('initial')
+    }
+  }
+
+  const handleComplete = async (withCv = false) => {
     setSubmitting(true)
     setError('')
     try {
-      const payload = {
-        role,
-        initialAnswers,
-        aiAnswers: Object.fromEntries(previousAnswers.map(a => [a.fieldKey, a.answer])),
-        wantsCv: cv,
-      }
-      const data = await completeOnboarding(payload.role, payload.initialAnswers, payload.aiAnswers, payload.wantsCv)
+      const data = await completeOnboarding(role, initialAnswers, aiAnswers, withCv)
       setAuth(data)
-      setStep('done')
+      setPhase('done')
       setTimeout(() => navigate(ROLE_ROUTES[role] ?? '/dashboard/candidate'), 1800)
     } catch (err) {
-      setError('Une erreur est survenue. Veuillez réessayer.')
+      setError(t.genericError)
       console.error(err)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const finishFlow = async (questionsOverride) => {
+    const questions = questionsOverride ?? aiQuestions
+    if (role === 'CANDIDATE') {
+      setPhase('cv-gen')
+      try {
+        const jobTitle = initialAnswers.desiredRole || 'Non spécifié'
+        const answers = buildAnswerList(initialQuestions, initialAnswers, questions, aiAnswers)
+        const cvData = await generateCv(jobTitle, answers)
+        setCvUrl(cvData.cvUrl)
+        setPhase('cv')
+      } catch (err) {
+        console.error(err)
+        setError(t.cvGenError)
+        setPhase('ai')
+      }
+    } else {
+      await handleComplete(false)
+    }
+  }
+
+  const handleNext = async () => {
+    setError('')
+    if (phase === 'initial') {
+      if (!isInitialQuestionAnswered(currentInitialQuestion)) {
+        setError(t.mandatoryFields)
+        return
+      }
+      if (initialIndex < initialQuestions.length - 1) {
+        setInitialIndex(i => i + 1)
+      } else {
+        await startAiPhase()
+      }
+      return
+    }
+    if (phase === 'ai') {
+      if (!isAiQuestionAnswered(currentAiQuestion)) {
+        setError(t.answerRequired)
+        return
+      }
+      if (aiIndex < aiQuestions.length - 1) {
+        setAiIndex(i => i + 1)
+      } else {
+        await finishFlow()
+      }
+    }
+  }
+
+  const handleBack = () => {
+    setError('')
+    if (phase === 'ai') {
+      if (aiIndex > 0) { setAiIndex(i => i - 1); return }
+      setPhase('initial')
+      setInitialIndex(initialQuestions.length - 1)
+      return
+    }
+    if (phase === 'initial' && initialIndex > 0) {
+      setInitialIndex(i => i - 1)
     }
   }
 
@@ -683,99 +737,53 @@ export default function OnboardingPage() {
   }
 
   /* ── Loading ── */
-  if (step === 'ai-init') return (
-    <StellaLoader
-      message="STELLA analyse vos réponses…"
-      sub="Préparation des questions personnalisées"
-    />
+  if (phase === 'ai-init') return (
+    <StellaLoader message={t.aiInitMessage} sub={t.aiInitSub} />
   )
 
-  if (step === 'cv-gen') return (
-    <StellaLoader
-      message="Génération de votre CV…"
-      sub="Mise en page professionnelle en cours"
-    />
+  if (phase === 'cv-gen') return (
+    <StellaLoader message={t.cvGenMessage} sub={t.cvGenSub} />
   )
 
   /* ── Done ── */
-  if (step === 'done') {
+  if (phase === 'done') {
     return (
       <div className="ob-shell">
         <div className="ob-done-card">
           <CheckCircle2 size={56} className="ob-done-icon" />
-          <h2>Profil complété !</h2>
-          <p>Redirection vers votre tableau de bord…</p>
+          <h2>{t.profileDoneTitle}</h2>
+          <p>{t.profileDoneSub}</p>
+          <button
+            type="button"
+            className="ob-btn-primary"
+            onClick={() => navigate(ROLE_ROUTES[role] ?? '/dashboard/candidate', { replace: true })}
+          >
+            {t.goToDashboard} <ChevronRight size={18} />
+          </button>
         </div>
       </div>
     )
   }
 
-  /* ── CV Generation with new screen ── */
-  if (step === 'cv') {
+  /* ── CV Generation success screen ── */
+  if (phase === 'cv') {
     return (
       <CvGenerationScreen
         cvUrl={cvUrl}
-        country={context.country}
+        country={initialAnswers.candidateCountry}
         onDownload={() => { /* track if needed */ }}
         onClose={() => handleCvComplete()}
       />
     )
   }
 
-  /* ── AI Questions with new components ── */
-  if (step === 'ai' && currentQuestion) {
-    return (
-      <div className="ob-shell">
-        <div className="ob-card">
-          <div className="ob-card-header">
-            <div className="ob-logo">
-              <span className="ob-logo-icon">S</span>
-              <span className="ob-logo-text">SkillSet</span>
-            </div>
-            <ProgressBar current={2} total={totalSteps} />
-          </div>
+  /* ── One continuous question-at-a-time flow (initial + AI-generated) ── */
+  const isLastAiQuestion = phase === 'ai' && aiIndex === aiQuestions.length - 1
+  const nextLabel = isLastAiQuestion
+    ? (role === 'CANDIDATE' ? t.generateCv : t.finish)
+    : t.continue
+  const canGoBack = phase === 'ai' ? true : initialIndex > 0
 
-          <div className="ob-card-body">
-            <PhaseIndicator
-              currentPhase={currentQuestion.nextPhase || 'INTRO'}
-              userRole={role}
-              completedQuestions={previousAnswers.length}
-              totalQuestions={15}
-            />
-
-            {(error || aiError) && <div className="ob-error">{error || aiError}</div>}
-
-            <AiQuestionCard
-              question={currentQuestion}
-              value={aiAnswerState}
-              onChange={(val) => setAiAnswerState(val)}
-              onSubmit={handleAiAnswer}
-              context={context}
-              isLoading={aiLoading}
-            />
-          </div>
-
-          <div className="ob-card-footer">
-            <button className="ob-btn-ghost" onClick={() => setStep('initial')}>
-              <ChevronLeft size={16} /> Retour
-            </button>
-            {aiComplete && (
-              <button
-                className="ob-btn-primary"
-                onClick={handleAiComplete}
-                disabled={aiLoading}
-              >
-                {role === 'CANDIDATE' ? 'Générer mon CV' : 'Terminer'}
-                <ChevronRight size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  /* ── Initial questions (unchanged) ── */
   return (
     <div className="ob-shell">
       <div className="ob-card">
@@ -784,33 +792,41 @@ export default function OnboardingPage() {
             <span className="ob-logo-icon">S</span>
             <span className="ob-logo-text">SkillSet</span>
           </div>
-          <ProgressBar current={1} total={totalSteps} />
+          <PhaseIndicator current={currentStepNum} total={totalSteps} />
         </div>
 
         <div className="ob-card-body">
-          <h2 className="ob-section-title">
-            {role === 'CANDIDATE' ? 'Parlez-nous de vous' : 'Votre entreprise'}
-          </h2>
-          <p className="ob-section-sub">Quelques questions pour personnaliser votre expérience</p>
+          {phase === 'initial' && initialIndex === 0 && (
+            <>
+              <h2 className="ob-section-title">
+                {role === 'CANDIDATE' ? t.candidateTitle : t.employerTitle}
+              </h2>
+              <p className="ob-section-sub">{t.sectionSub}</p>
+            </>
+          )}
+
           {error && <div className="ob-error">{error}</div>}
 
-          <div className="ob-questions">
-            {initialQuestions.map(q => (
+          {currentQuestion && (
+            <div className="ob-questions">
               <QuestionCard
-                key={q.id}
-                question={q}
-                value={initialAnswers[q.id] || ''}
-                answers={initialAnswers}
-                onChange={(id, val) => setAnswer('initial', id, val)}
-                onSideEffect={(id, val) => setAnswer('initial', id, val)}
+                question={currentQuestion}
+                value={currentValue}
+                answers={phase === 'ai' ? aiAnswers : initialAnswers}
+                onChange={handleChange}
+                onSideEffect={handleChange}
+                t={t}
               />
-            ))}
-          </div>
+            </div>
+          )}
         </div>
 
         <div className="ob-card-footer">
-          <button className="ob-btn-primary" onClick={handleInitialNext}>
-            Continuer
+          <button className="ob-btn-ghost" onClick={handleBack} disabled={!canGoBack}>
+            <ChevronLeft size={16} /> {t.back}
+          </button>
+          <button className="ob-btn-primary" onClick={handleNext} disabled={submitting}>
+            {nextLabel}
             <ChevronRight size={16} />
           </button>
         </div>

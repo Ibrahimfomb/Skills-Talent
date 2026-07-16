@@ -4,7 +4,7 @@
 
 .np-shell {
   min-height: 100vh;
-  background: #ffffff;
+  background: var(--surface-page);
   display: flex;
   flex-direction: column;
 }
@@ -119,7 +119,7 @@
 .np-title {
   font-size: 24px;
   font-weight: 700;
-  color: #2d2d2d;
+  color: var(--text-primary);
 }
 
 .np-unread-chip {
@@ -153,7 +153,7 @@
 .np-group-label {
   font-size: 13px;
   font-weight: 700;
-  color: #767676;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
@@ -166,15 +166,15 @@
   align-items: flex-start;
   gap: 14px;
   padding: 16px 14px;
-  border: 1px solid #d4d2d0;
+  border: 1px solid var(--surface-border);
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.15s;
-  background: #fff;
+  background: var(--surface-card);
   margin-bottom: 8px;
 }
 
-.np-notif-card:hover { background: #f3f2f1; }
+.np-notif-card:hover { background: var(--surface-border-soft); }
 
 .np-notif-card--unread { border-left: 3px solid #c42033; }
 
@@ -193,18 +193,18 @@
 .np-notif-title {
   font-size: 14px;
   font-weight: 600;
-  color: #2d2d2d;
+  color: var(--text-primary);
   margin-bottom: 3px;
 }
 
 .np-notif-text {
   font-size: 13px;
-  color: #595959;
+  color: var(--text-secondary);
   margin-bottom: 5px;
   line-height: 1.4;
 }
 
-.np-notif-time { font-size: 11px; color: #767676; }
+.np-notif-time { font-size: 11px; color: var(--text-muted); }
 
 .np-notif-actions {
   display: flex;
@@ -229,7 +229,7 @@
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: #767676;
+  color: var(--text-muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -254,14 +254,14 @@
 .np-empty-title {
   font-size: 20px;
   font-weight: 700;
-  color: #2d2d2d;
+  color: var(--text-primary);
   line-height: 1.35;
   margin-bottom: 10px;
 }
 
 .np-empty-sub {
   font-size: 14px;
-  color: #595959;
+  color: var(--text-secondary);
   margin-bottom: 24px;
 }
 
@@ -269,11 +269,11 @@
 .np-alert-card {
   width: 100%;
   max-width: 460px;
-  border: 1px solid #d4d2d0;
+  border: 1px solid var(--surface-border);
   border-radius: 6px;
   padding: 14px 16px;
   margin-bottom: 16px;
-  background: #fff;
+  background: var(--surface-card);
 }
 
 .np-alert-row {
@@ -287,7 +287,7 @@
 .np-alert-text {
   flex: 1;
   font-size: 14px;
-  color: #595959;
+  color: var(--text-secondary);
   text-align: left;
 }
 
@@ -298,7 +298,7 @@
   width: 44px;
   height: 24px;
   border-radius: 12px;
-  background: #d4d2d0;
+  background: var(--surface-border);
   border: none;
   cursor: pointer;
   position: relative;
@@ -324,7 +324,7 @@
 
 .np-alert-hint {
   font-size: 13px;
-  color: #595959;
+  color: var(--text-secondary);
   max-width: 420px;
   margin-bottom: 8px;
   line-height: 1.5;
@@ -364,7 +364,7 @@
 
 .np-legal {
   font-size: 12px;
-  color: #767676;
+  color: var(--text-muted);
   max-width: 420px;
   line-height: 1.5;
 }

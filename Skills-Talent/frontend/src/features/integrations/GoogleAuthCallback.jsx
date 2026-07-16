@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { confirmGoogleAuth } from '../../api/IntegrationsApi'
+import { useTranslation } from '../../i18n/translations'
 
 export default function GoogleAuthCallback() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const t = useTranslation().googleAuthCallback
   const [status, setStatus] = useState('loading') // 'loading', 'success', 'error'
   const [error, setError] = useState('')
 
@@ -13,11 +15,10 @@ export default function GoogleAuthCallback() {
     const handleCallback = async () => {
       try {
         const code = searchParams.get('code')
-        const state = searchParams.get('state')
 
         if (!code) {
           setStatus('error')
-          setError('Code d\'autorisation manquant. Veuillez réessayer.')
+          setError(t.missingCode)
           return
         }
 
@@ -34,13 +35,13 @@ export default function GoogleAuthCallback() {
         console.error('Error during Google auth callback:', err)
         setStatus('error')
         setError(
-          err.response?.data?.message ||
-            'Erreur lors de la connexion à Google Calendar. Veuillez réessayer.'
+          err.response?.data?.message || t.connectError
         )
       }
     }
 
     handleCallback()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, navigate])
 
   const handleRetry = () => {
@@ -54,13 +55,13 @@ export default function GoogleAuthCallback() {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: '100vh',
-        background: '#f9f9f9',
+        background: 'var(--surface-page)',
         padding: '20px',
       }}
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--surface-card)',
           borderRadius: '12px',
           padding: '40px 32px',
           maxWidth: '400px',
@@ -79,11 +80,11 @@ export default function GoogleAuthCallback() {
                 animation: 'spin 1s linear infinite',
               }}
             />
-            <h1 style={{ fontSize: '20px', color: '#222', margin: '0 0 8px 0' }}>
-              Connexion en cours...
+            <h1 style={{ fontSize: '20px', color: 'var(--text-primary)', margin: '0 0 8px 0' }}>
+              {t.connecting}
             </h1>
-            <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
-              Veuillez patienter pendant la connexion à Google Calendar
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>
+              {t.pleaseWait}
             </p>
           </>
         )}
@@ -97,14 +98,14 @@ export default function GoogleAuthCallback() {
                 marginBottom: '20px',
               }}
             />
-            <h1 style={{ fontSize: '20px', color: '#222', margin: '0 0 8px 0' }}>
-              Connexion réussie !
+            <h1 style={{ fontSize: '20px', color: 'var(--text-primary)', margin: '0 0 8px 0' }}>
+              {t.success}
             </h1>
-            <p style={{ fontSize: '14px', color: '#666', margin: '0 0 20px 0' }}>
-              Votre Google Calendar a été connecté avec succès
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 20px 0' }}>
+              {t.successBody}
             </p>
-            <p style={{ fontSize: '12px', color: '#999', margin: 0 }}>
-              Redirection vers les paramètres...
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+              {t.redirecting}
             </p>
           </>
         )}
@@ -118,10 +119,10 @@ export default function GoogleAuthCallback() {
                 marginBottom: '20px',
               }}
             />
-            <h1 style={{ fontSize: '20px', color: '#222', margin: '0 0 8px 0' }}>
-              Erreur de connexion
+            <h1 style={{ fontSize: '20px', color: 'var(--text-primary)', margin: '0 0 8px 0' }}>
+              {t.errorTitle}
             </h1>
-            <p style={{ fontSize: '14px', color: '#666', margin: '0 0 20px 0' }}>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 20px 0' }}>
               {error}
             </p>
             <button
@@ -150,7 +151,7 @@ export default function GoogleAuthCallback() {
                 e.target.style.boxShadow = '0 2px 4px rgba(196,32,51,0.15)'
               }}
             >
-              Retour aux paramètres
+              {t.backToSettings}
             </button>
           </>
         )}

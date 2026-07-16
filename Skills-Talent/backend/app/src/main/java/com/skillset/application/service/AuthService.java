@@ -1,11 +1,15 @@
 package com.skillset.application.service;
 
 import com.skillset.application.dto.*;
+import com.skillset.domain.entity.CandidateProfile;
 import com.skillset.domain.entity.User;
 import com.skillset.domain.entity.UserRole;
+import com.skillset.domain.port.CandidateProfileRepositoryPort;
 import com.skillset.domain.port.UserRepositoryPort;
 import com.skillset.infrastructure.security.AuthorizationService;
 import com.skillset.infrastructure.security.JwtUtil;
+import com.skillset.infrastructure.util.CloudinaryService;
+import com.skillset.infrastructure.util.EmailUtil;
 import dev.samstevens.totp.code.DefaultCodeVerifier;
 import dev.samstevens.totp.code.HashingAlgorithm;
 import dev.samstevens.totp.exceptions.QrGenerationException;
@@ -16,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Base64;
@@ -32,6 +37,9 @@ public class AuthService {
     private final SecretGenerator      secretGenerator;
     private final ZxingPngQrGenerator  qrGenerator;
     private final DefaultCodeVerifier  codeVerifier;
+    private final CandidateProfileRepositoryPort candidateProfileRepositoryPort;
+    private final CloudinaryService    cloudinaryService;
+    private final EmailUtil            emailUtil;
 
     // ── Inscription ──────────────────────────────────────────────────────────
 
@@ -191,12 +199,43 @@ public class AuthService {
     public UserDTO updateUser(String currentUserId, String userId, UserDTO details) {
         authorizationService.requireSelfOrAdmin(currentUserId, userId);
         return userRepositoryPort.findUserById(userId).map(user -> {
-            user.setFirstName(details.getFirstName());
-            user.setLastName(details.getLastName());
-            user.setPhoneNumber(details.getPhoneNumber());
-            user.setProfilePictureUrl(details.getProfilePictureUrl());
-            return toDTO(userRepositoryPort.saveUser(user));
+            if (details.getFirstName() != null) user.setFirstName(details.getFirstName());
+            if (details.getLastName() != null) user.setLastName(details.getLastName());
+            if (details.getPhoneNumber() != null) user.setPhoneNumber(details.getPhoneNumber());
+            if (details.getProfilePictureUrl() != null) user.setProfilePictureUrl(details.getProfilePictureUrl());
+            User saved = userRepositoryPort.saveUser(user);
+
+            if (saved.getRole() == UserRole.CANDIDATE) {
+                CandidateProfile profile = candidateProfileRepositoryPort.findByUserId(userId)
+                        .orElseGet(() -> {
+                            CandidateProfile p = new CandidateProfile();
+                            p.setUserId(userId);
+                            return p;
+                        });
+                if (details.getJobDomain() != null) profile.setJobDomain(details.getJobDomain());
+                if (details.getDesiredRole() != null) profile.setDesiredRole(details.getDesiredRole());
+                if (details.getExperienceLevel() != null) profile.setExperienceLevel(details.getExperienceLevel());
+                if (details.getContractType() != null) profile.setContractType(details.getContractType());
+                if (details.getLocation() != null) profile.setLocation(details.getLocation());
+                if (details.getSkills() != null) profile.setSkills(details.getSkills());
+                if (details.getBio() != null) profile.setBio(details.getBio());
+                candidateProfileRepositoryPort.save(profile);
+            }
+
+            return toDTO(saved);
         }).orElse(null);
+    }
+
+    public UserDTO updateProfilePhoto(String currentUserId, String userId, MultipartFile file) {
+        authorizationService.requireSelfOrAdmin(currentUserId, userId);
+        User user = findUser(userId);
+        String url = cloudinaryService.uploadImage(file);
+        if (url == null) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Le stockage des images n'est pas configuré sur ce serveur.");
+        }
+        user.setProfilePictureUrl(url);
+        return toDTO(userRepositoryPort.saveUser(user));
     }
 
     // ── Helpers privés ────────────────────────────────────────────────────────
@@ -207,6 +246,8 @@ public class AuthService {
     }
 
     private AuthResponse buildFullResponse(User user) {
+        emailUtil.sendLoginNotification(user.getEmail(), user.getFirstName());
+
         return AuthResponse.builder()
                 .token(jwtUtil.generateToken(user.getId(), user.getRole().name()))
                 .id(user.getId())
@@ -219,8 +260,22 @@ public class AuthService {
     }
 
     private UserDTO toDTO(User user) {
-        return new UserDTO(user.getId(), user.getEmail(), user.getFirstName(),
+        UserDTO dto = new UserDTO(user.getId(), user.getEmail(), user.getFirstName(),
                 user.getLastName(), user.getPhoneNumber(),
                 user.getRole().toString(), user.getProfilePictureUrl());
+
+        if (user.getRole() == UserRole.CANDIDATE) {
+            candidateProfileRepositoryPort.findByUserId(user.getId()).ifPresent(profile -> {
+                dto.setJobDomain(profile.getJobDomain());
+                dto.setDesiredRole(profile.getDesiredRole());
+                dto.setExperienceLevel(profile.getExperienceLevel());
+                dto.setContractType(profile.getContractType());
+                dto.setLocation(profile.getLocation());
+                dto.setSkills(profile.getSkills());
+                dto.setBio(profile.getBio());
+            });
+        }
+
+        return dto;
     }
 }

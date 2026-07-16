@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { createTalentPool } from '../../api/TalentPoolApi'
+import { useTranslation } from '../../i18n/translations'
 
 export default function TalentPoolCreateModal({ onClose, onSuccess }) {
+  const t = useTranslation().talentPool
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [jobListingId, setJobListingId] = useState('')
@@ -15,7 +17,7 @@ export default function TalentPoolCreateModal({ onClose, onSuccess }) {
     setError(null)
 
     if (!name.trim()) {
-      setError('Le nom du vivier est obligatoire')
+      setError(t.nameRequired)
       return
     }
 
@@ -31,7 +33,7 @@ export default function TalentPoolCreateModal({ onClose, onSuccess }) {
       onSuccess()
     } catch (err) {
       console.error('Error creating pool:', err)
-      setError(err.response?.data?.message || 'Erreur lors de la création du vivier')
+      setError(err.response?.data?.message || t.createError)
     } finally {
       setLoading(false)
     }
@@ -48,7 +50,7 @@ export default function TalentPoolCreateModal({ onClose, onSuccess }) {
       justifyContent: 'center', zIndex: 1000
     }}>
       <div style={{
-        background: '#fff', borderRadius: '12px', padding: '32px',
+        background: 'var(--surface-card)', borderRadius: '12px', padding: '32px',
         maxWidth: '500px', width: '90vw', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
         animation: 'slideUp 0.3s ease-out'
       }}>
@@ -56,17 +58,17 @@ export default function TalentPoolCreateModal({ onClose, onSuccess }) {
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1a1a1a', margin: 0 }}>
-            Créer un vivier de talents
+          <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+            {t.modalTitle}
           </h2>
           <button
             onClick={handleCancel}
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
-              color: '#999', transition: 'color 0.2s'
+              color: 'var(--text-muted)', transition: 'color 0.2s'
             }}
-            onMouseEnter={(e) => e.target.style.color = '#1a1a1a'}
-            onMouseLeave={(e) => e.target.style.color = '#999'}
+            onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
+            onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
           >
             <X size={20} />
           </button>
@@ -76,61 +78,64 @@ export default function TalentPoolCreateModal({ onClose, onSuccess }) {
         <form onSubmit={handleSubmit}>
           {/* Name */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#333', marginBottom: '8px' }}>
-              Nom du vivier <span style={{ color: '#c42033' }}>*</span>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {t.poolName} <span style={{ color: '#c42033' }}>*</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="ex: Développeurs Full Stack"
+              placeholder={t.poolNamePlaceholder}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: '6px',
-                border: '1px solid #ddd', fontSize: '13px',
+                border: '1px solid var(--surface-border)', fontSize: '13px',
+                background: 'var(--surface-card)', color: 'var(--text-primary)',
                 boxSizing: 'border-box', transition: 'border-color 0.2s'
               }}
               onFocus={(e) => e.target.style.borderColor = '#c42033'}
-              onBlur={(e) => e.target.style.borderColor = '#ddd'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--surface-border)'}
             />
           </div>
 
           {/* Description */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#333', marginBottom: '8px' }}>
-              Description (optionnel)
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {t.description}
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Décrivez ce vivier et ses objectifs..."
+              placeholder={t.descriptionPlaceholder}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: '6px',
-                border: '1px solid #ddd', fontSize: '13px', minHeight: '100px',
+                border: '1px solid var(--surface-border)', fontSize: '13px', minHeight: '100px',
+                background: 'var(--surface-card)', color: 'var(--text-primary)',
                 fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s',
                 resize: 'vertical'
               }}
               onFocus={(e) => e.target.style.borderColor = '#c42033'}
-              onBlur={(e) => e.target.style.borderColor = '#ddd'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--surface-border)'}
             />
           </div>
 
           {/* Job Listing */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#333', marginBottom: '8px' }}>
-              Offre d'emploi liée (optionnel)
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {t.linkedJob}
             </label>
             <select
               value={jobListingId}
               onChange={(e) => setJobListingId(e.target.value)}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: '6px',
-                border: '1px solid #ddd', fontSize: '13px',
+                border: '1px solid var(--surface-border)', fontSize: '13px',
+                background: 'var(--surface-card)', color: 'var(--text-primary)',
                 boxSizing: 'border-box', transition: 'border-color 0.2s'
               }}
               onFocus={(e) => e.target.style.borderColor = '#c42033'}
-              onBlur={(e) => e.target.style.borderColor = '#ddd'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--surface-border)'}
             >
-              <option value="">Sélectionner une offre...</option>
+              <option value="">{t.selectJob}</option>
               {/* TODO: populate with actual jobs from API */}
             </select>
           </div>
@@ -144,8 +149,8 @@ export default function TalentPoolCreateModal({ onClose, onSuccess }) {
               onChange={(e) => setIsPublic(e.target.checked)}
               style={{ cursor: 'pointer' }}
             />
-            <label htmlFor="isPublic" style={{ fontSize: '13px', color: '#666', cursor: 'pointer', margin: 0 }}>
-              Rendre ce vivier public
+            <label htmlFor="isPublic" style={{ fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', margin: 0 }}>
+              {t.makePublic}
             </label>
           </div>
 
@@ -167,19 +172,19 @@ export default function TalentPoolCreateModal({ onClose, onSuccess }) {
               onClick={handleCancel}
               disabled={loading}
               style={{
-                padding: '10px 24px', borderRadius: '6px', border: '1px solid #ddd',
-                background: '#fff', fontSize: '13px', fontWeight: 600, color: '#666',
+                padding: '10px 24px', borderRadius: '6px', border: '1px solid var(--surface-border)',
+                background: 'var(--surface-card)', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
                 cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1,
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
-                if (!loading) e.target.style.backgroundColor = '#f5f5f5'
+                if (!loading) e.target.style.backgroundColor = 'var(--surface-border-soft)'
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#fff'
+                e.target.style.backgroundColor = 'var(--surface-card)'
               }}
             >
-              Annuler
+              {t.cancel}
             </button>
             <button
               type="submit"
@@ -204,10 +209,10 @@ export default function TalentPoolCreateModal({ onClose, onSuccess }) {
                     border: '2px solid #fff', borderTop: '2px solid transparent', borderRadius: '50%',
                     animation: 'spin 0.6s linear infinite'
                   }} />
-                  Création...
+                  {t.creating}
                 </>
               ) : (
-                'Créer le vivier'
+                t.create
               )}
             </button>
           </div>

@@ -70,7 +70,10 @@ public class SecurityConfig {
                     "/api/onboarding/generate-questions",
                     "/api/public/**",
                     "/health",
-                    "/"
+                    "/",
+                    "/error",
+                    "/ws/**",
+                    "/ws-sockjs/**"
                 ).permitAll()
                 .requestMatchers("/api/onboarding/next-question", "/api/onboarding/context").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/onboarding/generate-cv").hasRole("CANDIDATE")

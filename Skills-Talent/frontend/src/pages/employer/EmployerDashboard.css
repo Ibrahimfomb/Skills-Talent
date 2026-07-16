@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #fafafa;
+  background: var(--surface-page);
   position: relative;
   overflow-x: hidden;
 }
@@ -174,7 +174,7 @@
 .ed-welcome {
   font-size: 26px;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin-bottom: 6px;
   letter-spacing: -0.3px;
 }
@@ -185,7 +185,7 @@
 
 .ed-welcome-sub {
   font-size: 14px;
-  color: #777;
+  color: var(--text-secondary);
   margin-bottom: 36px;
 }
 
@@ -195,7 +195,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  background: #ffffff;
+  background: var(--surface-card);
   border: 1.5px solid #ffe0e4;
   border-left: 4px solid #FF5A6F;
   border-radius: 16px;
@@ -207,13 +207,13 @@
 .ed-cta-banner h2 {
   font-size: 17px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin-bottom: 6px;
 }
 
 .ed-cta-banner p {
   font-size: 14px;
-  color: #777;
+  color: var(--text-secondary);
 }
 
 .ed-cta-btn {
@@ -238,6 +238,60 @@
   background: #a81a2b;
 }
 
+/* ─── Switch-role banner ─────────────────────────────────────── */
+.ed-switch-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: var(--surface-card);
+  border: 1.5px solid var(--surface-border);
+  border-left: 4px solid #2b4fbf;
+  border-radius: 16px;
+  padding: 20px 28px;
+  margin-bottom: 40px;
+  box-shadow: 0 2px 12px rgba(43, 79, 191, 0.06);
+}
+
+.ed-switch-banner h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.ed-switch-banner p {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ed-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: none;
+  border: 1.5px solid #2b4fbf;
+  border-radius: 10px;
+  color: #2b4fbf;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.14s, color 0.14s;
+}
+
+.ed-switch-btn:hover {
+  background: #2b4fbf;
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .ed-switch-banner { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .ed-switch-btn { width: 100%; justify-content: center; }
+}
+
 /* ─── Sections ───────────────────────────────────────────────── */
 .ed-section {
   margin-bottom: 40px;
@@ -246,7 +300,7 @@
 .ed-section-title {
   font-size: 11px;
   font-weight: 700;
-  color: #767676;
+  color: var(--text-muted);
   margin-bottom: 16px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -264,18 +318,19 @@
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background: #ffffff;
-  border: 1.5px solid #ebebeb;
+  background: var(--surface-card);
+  border: 1.5px solid var(--surface-border);
   border-radius: 14px;
   cursor: pointer;
   text-align: left;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: border-color 0.14s, box-shadow 0.14s;
+  transition: border-color 0.14s, box-shadow 0.14s, transform 0.14s;
 }
 
 .ed-quick-card:hover {
   border-color: #FF5A6F;
-  box-shadow: 0 4px 16px rgba(255, 90, 111, 0.1);
+  box-shadow: 0 8px 22px rgba(255, 90, 111, 0.14);
+  transform: translateY(-2px);
 }
 
 .ed-quick-icon {
@@ -296,18 +351,18 @@
 .ed-quick-label {
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin-bottom: 3px;
 }
 
 .ed-quick-desc {
   font-size: 12px;
-  color: #888;
+  color: var(--text-muted);
 }
 
 .ed-quick-arrow {
   margin-left: auto;
-  color: #ccc;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
@@ -319,25 +374,27 @@
 }
 
 .ed-stat-card {
-  background: #ffffff;
-  border: 1.5px solid #ebebeb;
+  background: var(--surface-card);
+  border: 1.5px solid var(--surface-border);
   border-radius: 14px;
   padding: 24px 20px;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.14s, box-shadow 0.14s;
 }
+.ed-stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); }
 
 .ed-stat-value {
   font-size: 32px;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-primary);
   line-height: 1;
   margin-bottom: 8px;
 }
 
 .ed-stat-label {
   font-size: 12px;
-  color: #888;
+  color: var(--text-muted);
 }
 
 /* ─── Reviews ───────────────────────────────────────────────────*/

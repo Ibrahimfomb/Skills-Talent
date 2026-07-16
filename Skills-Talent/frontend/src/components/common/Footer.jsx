@@ -63,15 +63,15 @@ const Footer = () => {
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-3">
                 <Mail size={18} className="text-cherry-600 flex-shrink-0" />
-                <span>info@skillset.com</span>
+                <span>contact@skillset.africa</span>
               </div>
               <div className="flex items-center gap-3">
                 <Phone size={18} className="text-cherry-600 flex-shrink-0" />
-                <span>+33 (0) 1 23 45 67 89</span>
+                <span>+225 07 12 34 56 78</span>
               </div>
               <div className="flex items-center gap-3">
                 <MapPin size={18} className="text-cherry-600 flex-shrink-0" />
-                <span>Paris, France</span>
+                <span>Abidjan, Côte d&apos;Ivoire</span>
               </div>
             </div>
           </div>

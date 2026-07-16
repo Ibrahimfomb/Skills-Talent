@@ -68,15 +68,42 @@
   --font:        'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-script: 'Dancing Script', cursive;
 
+  /* ── Semantic surface tokens (light) ────────────────────── */
+  --surface-page:     #FAFAFA;
+  --surface-page-alt: #FFF1F2;
+  --surface-card:     #FFFFFF;
+  --surface-nav:      rgba(255, 255, 255, 0.75);
+  --surface-border:   #E4E4E7;
+  --surface-border-soft: #F4F4F5;
+  --text-primary:     #18181B;
+  --text-secondary:   #52525B;
+  --text-muted:       #71717A;
+
   font-family: var(--font);
   font-size: 16px;
   line-height: 1.6;
   letter-spacing: -0.011em;
   color-scheme: light;
-  color: #18181B;
-  background: #FAFAFA;
+  color: var(--text-primary);
+  background: var(--surface-page);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-page:     #18181B;
+  --surface-page-alt: #241417;
+  --surface-card:     #232327;
+  --surface-nav:      rgba(24, 24, 27, 0.8);
+  --surface-border:   #333338;
+  --surface-border-soft: #2A2A2E;
+  --text-primary:     #FAFAFA;
+  --text-secondary:   #C4C4CA;
+  --text-muted:       #A1A1AA;
+
+  color: var(--text-primary);
+  background: var(--surface-page);
 }
 
 /* ── Reset minimal ──────────────────────────────────────────── */

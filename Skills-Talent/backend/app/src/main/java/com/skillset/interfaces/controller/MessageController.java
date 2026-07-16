@@ -1,8 +1,9 @@
 package com.skillset.interfaces.controller;
 
+import com.skillset.application.dto.ConversationSummaryDTO;
 import com.skillset.application.dto.MessageDTO;
+import com.skillset.application.dto.SendMessageRequest;
 import com.skillset.application.service.MessageService;
-import com.skillset.domain.entity.Message;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +20,15 @@ public class MessageController {
     private final MessageService messageService;
 
     @PostMapping
-    public ResponseEntity<Message> sendMessage(@AuthenticationPrincipal String userId,
-                                               @RequestBody Message message) {
-        Message sentMessage = messageService.sendMessage(userId, message);
-        return new ResponseEntity<>(sentMessage, HttpStatus.CREATED);
+    public ResponseEntity<MessageDTO> sendMessage(@AuthenticationPrincipal String userId,
+                                                   @RequestBody SendMessageRequest request) {
+        MessageDTO sent = messageService.sendMessage(userId, request.getRecipientId(), request.getContent());
+        return new ResponseEntity<>(sent, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/conversations")
+    public ResponseEntity<List<ConversationSummaryDTO>> getMyConversations(@AuthenticationPrincipal String userId) {
+        return ResponseEntity.ok(messageService.listConversations(userId));
     }
 
     @GetMapping("/conversation")

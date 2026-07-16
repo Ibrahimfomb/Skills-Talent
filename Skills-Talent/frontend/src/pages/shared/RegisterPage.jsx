@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff, User, Briefcase, ChevronRight } from 'lucide-react'
 import { registerUser } from '../../api/AuthApi'
 import { useAuthStore } from '../../store/AuthStore'
+import PublicNavbar from '../../components/common/PublicNavbar'
+import { useTranslation } from '../../i18n/translations'
 import './RegisterPage.css'
 import './AuthPage.css'
 
@@ -17,9 +19,17 @@ const resolveRedirect = (data) =>
 export default function RegisterPage() {
   const navigate = useNavigate()
   const setAuth  = useAuthStore((s) => s.setAuth)
+  const t = useTranslation().register
 
-  const [step, setStep]           = useState('select')
-  const [form, setForm]           = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '', role: '' })
+  // Permet aux liens croisés (dashboard employeur → "chercher un emploi" et
+  // inversement) d'ouvrir directement le formulaire sur le bon rôle, sans
+  // repasser par l'étape de sélection.
+  const [searchParams] = useSearchParams()
+  const presetRole = searchParams.get('role')
+  const initialRole = presetRole === 'CANDIDATE' || presetRole === 'EMPLOYER' ? presetRole : ''
+
+  const [step, setStep]           = useState(initialRole ? 'form' : 'select')
+  const [form, setForm]           = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '', role: initialRole })
   const [showPassword, setShowPw] = useState(false)
   const [showConfirm, setShowCf]  = useState(false)
   const [error, setError]         = useState('')
@@ -31,11 +41,11 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.firstName || !form.lastName || !form.email || !form.password)
-      return setError('Veuillez remplir tous les champs.')
+      return setError(t.fillAllFields)
     if (form.password.length < 8)
-      return setError('Le mot de passe doit contenir au moins 8 caractères.')
+      return setError(t.passwordTooShort)
     if (form.password !== form.confirmPassword)
-      return setError('Les mots de passe ne correspondent pas.')
+      return setError(t.passwordMismatch)
     setLoading(true)
     try {
       const data = await registerUser({
@@ -45,67 +55,71 @@ export default function RegisterPage() {
       setAuth(data)
       navigate(resolveRedirect(data))
     } catch (err) {
-      setError(err.response?.data?.message || "Erreur lors de l'inscription.")
+      setError(err.response?.data?.message || t.registerError)
     } finally {
       setLoading(false)
     }
   }
 
+  const [candBrandPrefix, candBrandAccent] = t.candidateBrandTitle
+  const [empBrandPrefix, empBrandAccent] = t.employerBrandTitle
+
   /* ── Étape 1 — Choix du profil ── */
   if (step === 'select') {
     return (
-      <div className="reg-select-shell">
+      <div className="auth-page">
+        <PublicNavbar />
+        <div className="reg-select-shell">
 
-        <div className="reg-select-header">
-          <div className="auth-logo" style={{ justifyContent: 'center' }}>
-            <div className="auth-logo-icon">S</div>
-            <span className="auth-logo-text" style={{ color: '#1a1a1a' }}>SkillSet</span>
+          <div className="reg-select-header">
+            <h1>{t.joinTitle}</h1>
+            <p>{t.joinSub}</p>
           </div>
-          <h1>Rejoignez SkillSet</h1>
-          <p>Choisissez votre profil pour commencer</p>
+
+          <div className="reg-select-cards">
+
+            <button className="reg-role-card reg-role-card--candidate" onClick={() => selectRole('CANDIDATE')}>
+              <div className="reg-role-card-body">
+                <div className="reg-role-icon"><User size={24} /></div>
+                <h2>{t.candidateTitle}</h2>
+                <p>{t.candidateDesc}</p>
+              </div>
+              <div className="reg-role-card-footer">
+                <span>{t.start}</span>
+                <ChevronRight size={16} />
+              </div>
+              <div className="reg-role-card-deco" />
+            </button>
+
+            <button className="reg-role-card reg-role-card--employer" onClick={() => selectRole('EMPLOYER')}>
+              <div className="reg-role-card-body">
+                <div className="reg-role-icon"><Briefcase size={24} /></div>
+                <h2>{t.employerTitle}</h2>
+                <p>{t.employerDesc}</p>
+              </div>
+              <div className="reg-role-card-footer">
+                <span>{t.start}</span>
+                <ChevronRight size={16} />
+              </div>
+              <div className="reg-role-card-deco" />
+            </button>
+
+          </div>
+
+          <p className="reg-select-login">
+            {t.alreadyAccount} <Link to="/login">{t.signIn}</Link>
+          </p>
+
         </div>
-
-        <div className="reg-select-cards">
-
-          <button className="reg-role-card reg-role-card--candidate" onClick={() => selectRole('CANDIDATE')}>
-            <div className="reg-role-card-body">
-              <div className="reg-role-icon"><User size={24} /></div>
-              <h2>Candidat</h2>
-              <p>Trouvez votre prochain emploi grâce à notre matching IA et des milliers d&apos;offres vérifiées.</p>
-            </div>
-            <div className="reg-role-card-footer">
-              <span>Commencer</span>
-              <ChevronRight size={16} />
-            </div>
-            <div className="reg-role-card-deco" />
-          </button>
-
-          <button className="reg-role-card reg-role-card--employer" onClick={() => selectRole('EMPLOYER')}>
-            <div className="reg-role-card-body">
-              <div className="reg-role-icon"><Briefcase size={24} /></div>
-              <h2>Recruteur</h2>
-              <p>Publiez vos offres et trouvez les meilleurs talents grâce à notre analyse de CV intelligente.</p>
-            </div>
-            <div className="reg-role-card-footer">
-              <span>Commencer</span>
-              <ChevronRight size={16} />
-            </div>
-            <div className="reg-role-card-deco" />
-          </button>
-
-        </div>
-
-        <p className="reg-select-login">
-          Déjà un compte ? <Link to="/login">Se connecter</Link>
-        </p>
-
       </div>
     )
   }
 
   /* ── Étape 2 — Formulaire d'inscription ── */
   return (
-    <div className="auth-shell">
+    <div className="auth-page">
+      <PublicNavbar />
+      <div className="auth-shell">
 
       {/* Panneau gauche */}
       <div className="auth-brand">
@@ -120,15 +134,12 @@ export default function RegisterPage() {
           </div>
           <h1 className="auth-brand-title">
             {form.role === 'CANDIDATE'
-              ? <>Trouvez le poste <span className="auth-brand-accent">idéal</span></>
-              : <>Recrutez les <span className="auth-brand-accent">meilleurs talents</span></>
+              ? <>{candBrandPrefix}<span className="auth-brand-accent">{candBrandAccent}</span></>
+              : <>{empBrandPrefix}<span className="auth-brand-accent">{empBrandAccent}</span></>
             }
           </h1>
           <p className="auth-brand-subtitle">
-            {form.role === 'CANDIDATE'
-              ? "Des milliers d'offres vous attendent. Notre IA analyse votre profil pour des recommandations personnalisées."
-              : "Publiez vos offres et accédez à un vivier de talents qualifiés. L'IA sélectionne les meilleurs profils pour vous."
-            }
+            {form.role === 'CANDIDATE' ? t.candidateBrandSub : t.employerBrandSub}
           </p>
         </div>
       </div>
@@ -139,14 +150,14 @@ export default function RegisterPage() {
 
           <div className="auth-card-header">
             <button className="reg-back-btn" onClick={() => setStep('select')}>
-              ← Retour
+              {t.back}
             </button>
-            <h2>Vos informations</h2>
-            <p>Créez votre compte en quelques secondes</p>
+            <h2>{t.formTitle}</h2>
+            <p>{t.formSub}</p>
             <div className="reg-profile-badge">
               {form.role === 'CANDIDATE'
-                ? <><User size={13} /> Candidat</>
-                : <><Briefcase size={13} /> Recruteur</>
+                ? <><User size={13} /> {t.candidateTitle}</>
+                : <><Briefcase size={13} /> {t.employerTitle}</>
               }
             </div>
           </div>
@@ -157,35 +168,35 @@ export default function RegisterPage() {
 
             <div className="auth-field-group">
               <div className="auth-field">
-                <label htmlFor="firstName">Prénom</label>
+                <label htmlFor="firstName">{t.firstNameLabel}</label>
                 <input
-                  id="firstName" name="firstName" type="text" placeholder="Prénom"
+                  id="firstName" name="firstName" type="text" placeholder={t.firstNameLabel}
                   value={form.firstName} onChange={handleChange} autoComplete="given-name"
                 />
               </div>
               <div className="auth-field">
-                <label htmlFor="lastName">Nom</label>
+                <label htmlFor="lastName">{t.lastNameLabel}</label>
                 <input
-                  id="lastName" name="lastName" type="text" placeholder="Nom"
+                  id="lastName" name="lastName" type="text" placeholder={t.lastNameLabel}
                   value={form.lastName} onChange={handleChange} autoComplete="family-name"
                 />
               </div>
             </div>
 
             <div className="auth-field">
-              <label htmlFor="email">Adresse e-mail</label>
+              <label htmlFor="email">{t.emailLabel}</label>
               <input
-                id="email" name="email" type="email" placeholder="vous@exemple.com"
+                id="email" name="email" type="email" placeholder={t.emailPlaceholder}
                 value={form.email} onChange={handleChange} autoComplete="email"
               />
             </div>
 
             <div className="auth-field">
-              <label htmlFor="password">Mot de passe</label>
+              <label htmlFor="password">{t.passwordLabel}</label>
               <div className="auth-input-wrap">
                 <input
                   id="password" name="password" type={showPassword ? 'text' : 'password'}
-                  placeholder="8 caractères minimum"
+                  placeholder={t.passwordPlaceholder}
                   value={form.password} onChange={handleChange} autoComplete="new-password"
                 />
                 <button type="button" className="auth-eye" onClick={() => setShowPw(v => !v)}>
@@ -195,7 +206,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="auth-field">
-              <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
+              <label htmlFor="confirmPassword">{t.confirmPasswordLabel}</label>
               <div className="auth-input-wrap">
                 <input
                   id="confirmPassword" name="confirmPassword" type={showConfirm ? 'text' : 'password'}
@@ -209,18 +220,19 @@ export default function RegisterPage() {
             </div>
 
             <button type="submit" disabled={loading} className="auth-btn-primary">
-              {loading ? <span className="auth-spinner" /> : 'Créer mon compte'}
+              {loading ? <span className="auth-spinner" /> : t.createAccount}
             </button>
 
           </form>
 
           <p className="auth-switch" style={{ marginTop: '20px' }}>
-            Déjà un compte ? <Link to="/login">Se connecter</Link>
+            {t.alreadyAccount} <Link to="/login">{t.signIn}</Link>
           </p>
 
         </div>
       </div>
 
+      </div>
     </div>
   )
 }

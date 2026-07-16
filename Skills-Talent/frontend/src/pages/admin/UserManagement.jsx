@@ -1,12 +1,15 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Search, Users, UserCheck, UserX, Briefcase, ChevronDown } from 'lucide-react'
 import { getAdminUsers, toggleUserStatus } from '../../api/AdminApi'
+import { useTranslation } from '../../i18n/translations'
 import './UserManagement.css'
 
-const ROLE_LABELS = { CANDIDATE: 'Candidat', EMPLOYER: 'Employeur', ADMIN: 'Admin' }
 const ROLE_OPTIONS = ['', 'CANDIDATE', 'EMPLOYER', 'ADMIN']
 
 export default function UserManagement() {
+  const admin = useTranslation().admin
+  const t = admin.users
+  const roleLabels = admin.roles
   const [users, setUsers]           = useState([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState('')
@@ -19,26 +22,26 @@ export default function UserManagement() {
     setError('')
     getAdminUsers(search)
       .then(setUsers)
-      .catch(() => setError('Impossible de charger les utilisateurs.'))
+      .catch(() => setError(t.loadError))
       .finally(() => setLoading(false))
-  }, [search])
+  }, [search, t.loadError])
 
   useEffect(() => {
-    const t = setTimeout(load, 300)
-    return () => clearTimeout(t)
+    const timer = setTimeout(load, 300)
+    return () => clearTimeout(timer)
   }, [load])
 
   const handleToggle = async (userId) => {
-    setToggling(t => ({ ...t, [userId]: true }))
+    setToggling(prev => ({ ...prev, [userId]: true }))
     try {
       await toggleUserStatus(userId)
       setUsers(us => us.map(u =>
         u.id === userId ? { ...u, status: u.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' } : u
       ))
     } catch {
-      setError('Erreur lors du changement de statut.')
+      setError(t.statusChangeError)
     } finally {
-      setToggling(t => ({ ...t, [userId]: false }))
+      setToggling(prev => ({ ...prev, [userId]: false }))
     }
   }
 
@@ -55,8 +58,8 @@ export default function UserManagement() {
   return (
     <div className="um-shell">
       <div className="um-header">
-        <h1 className="um-title">Gestion des utilisateurs</h1>
-        <p className="um-sub">Consultez, filtrez et modifiez le statut des comptes inscrits.</p>
+        <h1 className="um-title">{t.pageTitle}</h1>
+        <p className="um-sub">{t.pageSub}</p>
       </div>
 
       <div className="um-kpis">
@@ -64,28 +67,28 @@ export default function UserManagement() {
           <Users size={20} />
           <div>
             <p className="um-kpi-val">{counts.total}</p>
-            <p className="um-kpi-label">Total</p>
+            <p className="um-kpi-label">{t.total}</p>
           </div>
         </div>
         <div className="um-kpi um-kpi--active">
           <UserCheck size={20} />
           <div>
             <p className="um-kpi-val">{counts.active}</p>
-            <p className="um-kpi-label">Actifs</p>
+            <p className="um-kpi-label">{t.active}</p>
           </div>
         </div>
         <div className="um-kpi um-kpi--inactive">
           <UserX size={20} />
           <div>
             <p className="um-kpi-val">{counts.inactive}</p>
-            <p className="um-kpi-label">Inactifs</p>
+            <p className="um-kpi-label">{t.inactive}</p>
           </div>
         </div>
         <div className="um-kpi um-kpi--employer">
           <Briefcase size={20} />
           <div>
             <p className="um-kpi-val">{counts.EMPLOYER}</p>
-            <p className="um-kpi-label">Employeurs</p>
+            <p className="um-kpi-label">{t.employers}</p>
           </div>
         </div>
       </div>
@@ -95,7 +98,7 @@ export default function UserManagement() {
           <Search size={15} className="um-search-icon" />
           <input
             className="um-search"
-            placeholder="Nom, prénom ou email…"
+            placeholder={t.searchPlaceholder}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -107,7 +110,7 @@ export default function UserManagement() {
             onChange={e => setFilterRole(e.target.value)}
           >
             {ROLE_OPTIONS.map(r => (
-              <option key={r} value={r}>{r ? ROLE_LABELS[r] ?? r : 'Tous les rôles'}</option>
+              <option key={r} value={r}>{r ? roleLabels[r] ?? r : t.allRoles}</option>
             ))}
           </select>
           <ChevronDown size={14} className="um-filter-arrow" />
@@ -117,23 +120,23 @@ export default function UserManagement() {
       {error && <p className="um-error">{error}</p>}
 
       {loading ? (
-        <div className="um-loading">Chargement…</div>
+        <div className="um-loading">{t.loading}</div>
       ) : visible.length === 0 ? (
         <div className="um-empty">
-          <Users size={40} color="#d4d2d0" />
-          <p>Aucun utilisateur trouvé.</p>
+          <Users size={40} color="var(--text-muted)" />
+          <p>{t.emptyResults}</p>
         </div>
       ) : (
         <div className="um-table-wrap">
           <table className="um-table">
             <thead>
               <tr>
-                <th>Nom</th>
-                <th>Email</th>
-                <th>Rôle</th>
-                <th>Statut</th>
-                <th>Inscrit le</th>
-                <th>Action</th>
+                <th>{t.table.name}</th>
+                <th>{t.table.email}</th>
+                <th>{t.table.role}</th>
+                <th>{t.table.status}</th>
+                <th>{t.table.joined}</th>
+                <th>{t.table.action}</th>
               </tr>
             </thead>
             <tbody>
@@ -143,12 +146,12 @@ export default function UserManagement() {
                   <td className="um-td-email">{user.email}</td>
                   <td>
                     <span className={`um-role um-role--${user.role?.toLowerCase()}`}>
-                      {ROLE_LABELS[user.role] ?? user.role}
+                      {roleLabels[user.role] ?? user.role}
                     </span>
                   </td>
                   <td>
                     <span className={`um-badge ${user.status === 'ACTIVE' ? 'um-badge--active' : 'um-badge--inactive'}`}>
-                      {user.status === 'ACTIVE' ? 'Actif' : 'Inactif'}
+                      {user.status === 'ACTIVE' ? t.statusActive : t.statusInactive}
                     </span>
                   </td>
                   <td className="um-td-date">{user.joinedAt}</td>
@@ -157,11 +160,11 @@ export default function UserManagement() {
                       className={`um-toggle-btn ${user.status === 'ACTIVE' ? 'um-toggle-btn--deactivate' : 'um-toggle-btn--activate'}`}
                       disabled={toggling[user.id] || user.role === 'ADMIN'}
                       onClick={() => handleToggle(user.id)}
-                      title={user.role === 'ADMIN' ? 'Les admins ne peuvent pas être désactivés ici' : ''}
+                      title={user.role === 'ADMIN' ? t.adminProtected : ''}
                     >
                       {toggling[user.id]
                         ? '…'
-                        : user.status === 'ACTIVE' ? 'Désactiver' : 'Activer'
+                        : user.status === 'ACTIVE' ? t.deactivate : t.activate
                       }
                     </button>
                   </td>
@@ -169,7 +172,7 @@ export default function UserManagement() {
               ))}
             </tbody>
           </table>
-          <div className="um-count">{visible.length} utilisateur{visible.length > 1 ? 's' : ''} affiché{visible.length > 1 ? 's' : ''}</div>
+          <div className="um-count">{visible.length} {visible.length > 1 ? t.usersShown.plural : t.usersShown.singular}</div>
         </div>
       )}
     </div>

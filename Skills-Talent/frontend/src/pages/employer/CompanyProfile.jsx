@@ -1,19 +1,18 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   Building2, MapPin, Globe, Users, Star, Save, Edit3, CheckCircle, Link2, Copy,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/AuthStore'
 import { COMPANIES }    from '../../data/mockData'
 import AppNavbar        from '../../components/common/AppNavbar'
+import { useTranslation } from '../../i18n/translations'
 import './CompanyProfile.css'
 
-const SECTORS = ['Tech & Startups','Finance & Banque','Télécommunications','Énergie','E-commerce','Conseil & Audit','Santé','Éducation','Industrie','RH & Recrutement','Marketing & Communication','Transport & Logistique']
-const SIZES   = ['1-10','10-50','50-200','200-500','500-1000','1000-5000','5000+']
+const SIZES = ['1-10','10-50','50-200','200-500','500-1000','1000-5000','5000+']
 
 export default function CompanyProfile() {
-  const navigate = useNavigate()
   const { user } = useAuthStore()
+  const t = useTranslation().employer.company
 
   const companyName = user?.companyName || user?.company || null
   const baseCompany = useMemo(() => {
@@ -25,7 +24,7 @@ export default function CompanyProfile() {
 
   const [form, setForm] = useState({
     name:        companyName || baseCompany?.name || '',
-    sector:      baseCompany?.sector || 'Tech & Startups',
+    sector:      baseCompany?.sector || t.sectors[0],
     size:        baseCompany?.size   || '10-50',
     city:        baseCompany?.city   || 'Douala',
     country:     baseCompany?.country || 'Cameroun',
@@ -68,20 +67,20 @@ export default function CompanyProfile() {
       <main className="cp-main">
         <div className="cp-page-header">
           <div>
-            <h1 className="cp-title"><Building2 size={22} /> Profil de l&apos;entreprise</h1>
-            <p className="cp-subtitle">Visible par tous les candidats sur SkillSet</p>
+            <h1 className="cp-title"><Building2 size={22} /> {t.pageTitle}</h1>
+            <p className="cp-subtitle">{t.pageSubtitle}</p>
           </div>
           <div className="cp-header-actions">
             {saved && (
-              <span className="cp-saved-msg"><CheckCircle size={15} /> Sauvegardé</span>
+              <span className="cp-saved-msg"><CheckCircle size={15} /> {t.saved}</span>
             )}
             {editing ? (
               <>
-                <button className="cp-cancel-btn" onClick={() => setEditing(false)}>Annuler</button>
-                <button className="cp-save-btn" onClick={handleSave}><Save size={15} /> Sauvegarder</button>
+                <button className="cp-cancel-btn" onClick={() => setEditing(false)}>{t.cancel}</button>
+                <button className="cp-save-btn" onClick={handleSave}><Save size={15} /> {t.save}</button>
               </>
             ) : (
-              <button className="cp-edit-btn" onClick={() => setEditing(true)}><Edit3 size={15} /> Modifier</button>
+              <button className="cp-edit-btn" onClick={() => setEditing(true)}><Edit3 size={15} /> {t.edit}</button>
             )}
           </div>
         </div>
@@ -89,11 +88,11 @@ export default function CompanyProfile() {
         {/* ── Public careers URL ── */}
         <div className="cp-careers-banner">
           <Link2 size={15} />
-          <span className="cp-careers-label">Page carrière publique :</span>
+          <span className="cp-careers-label">{t.careersLabel}</span>
           <a href={publicUrl} target="_blank" rel="noreferrer" className="cp-careers-url">{publicUrl}</a>
-          <button className="cp-careers-copy" onClick={handleCopy} title="Copier le lien">
+          <button className="cp-careers-copy" onClick={handleCopy} title={t.copyTitle}>
             {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
-            {copied ? 'Copié !' : 'Copier'}
+            {copied ? t.copied : t.copy}
           </button>
         </div>
 
@@ -110,58 +109,58 @@ export default function CompanyProfile() {
             <div className="cp-form-body">
 
               <div className="cp-field-group">
-                <label className="cp-label">Nom de l&apos;entreprise</label>
+                <label className="cp-label">{t.companyName}</label>
                 {editing
-                  ? <input className="cp-input" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Nom de votre entreprise" />
+                  ? <input className="cp-input" value={form.name} onChange={e => set('name', e.target.value)} placeholder={t.companyNamePlaceholder} />
                   : <p className="cp-value">{form.name || '—'}</p>
                 }
               </div>
 
               <div className="cp-field-group">
-                <label className="cp-label">Accroche (tagline)</label>
+                <label className="cp-label">{t.tagline}</label>
                 {editing
-                  ? <input className="cp-input" value={form.tagline} onChange={e => set('tagline', e.target.value)} placeholder="Ex: L'innovation africaine, faite au Cameroun" />
+                  ? <input className="cp-input" value={form.tagline} onChange={e => set('tagline', e.target.value)} placeholder={t.taglinePlaceholder} />
                   : <p className="cp-value">{form.tagline || '—'}</p>
                 }
               </div>
 
               <div className="cp-two-cols">
                 <div className="cp-field-group">
-                  <label className="cp-label">Secteur</label>
+                  <label className="cp-label">{t.sector}</label>
                   {editing
                     ? (
                       <select className="cp-select" value={form.sector} onChange={e => set('sector', e.target.value)}>
-                        {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
+                        {t.sectors.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     )
                     : <p className="cp-value">{form.sector}</p>
                   }
                 </div>
                 <div className="cp-field-group">
-                  <label className="cp-label">Taille</label>
+                  <label className="cp-label">{t.size}</label>
                   {editing
                     ? (
                       <select className="cp-select" value={form.size} onChange={e => set('size', e.target.value)}>
-                        {SIZES.map(s => <option key={s} value={s}>{s} employés</option>)}
+                        {SIZES.map(s => <option key={s} value={s}>{s} {t.employees}</option>)}
                       </select>
                     )
-                    : <p className="cp-value">{form.size} employés</p>
+                    : <p className="cp-value">{form.size} {t.employees}</p>
                   }
                 </div>
               </div>
 
               <div className="cp-two-cols">
                 <div className="cp-field-group">
-                  <label className="cp-label"><MapPin size={12} /> Ville</label>
+                  <label className="cp-label"><MapPin size={12} /> {t.city}</label>
                   {editing
-                    ? <input className="cp-input" value={form.city} onChange={e => set('city', e.target.value)} placeholder="Douala" />
+                    ? <input className="cp-input" value={form.city} onChange={e => set('city', e.target.value)} placeholder={t.cityPlaceholder} />
                     : <p className="cp-value">{form.city || '—'}</p>
                   }
                 </div>
                 <div className="cp-field-group">
-                  <label className="cp-label">Pays</label>
+                  <label className="cp-label">{t.country}</label>
                   {editing
-                    ? <input className="cp-input" value={form.country} onChange={e => set('country', e.target.value)} placeholder="Cameroun" />
+                    ? <input className="cp-input" value={form.country} onChange={e => set('country', e.target.value)} placeholder={t.countryPlaceholder} />
                     : <p className="cp-value">{form.country || '—'}</p>
                   }
                 </div>
@@ -169,23 +168,23 @@ export default function CompanyProfile() {
 
               <div className="cp-two-cols">
                 <div className="cp-field-group">
-                  <label className="cp-label"><Globe size={12} /> Site web</label>
+                  <label className="cp-label"><Globe size={12} /> {t.website}</label>
                   {editing
-                    ? <input className="cp-input" value={form.website} onChange={e => set('website', e.target.value)} placeholder="https://votre-site.com" />
+                    ? <input className="cp-input" value={form.website} onChange={e => set('website', e.target.value)} placeholder={t.websitePlaceholder} />
                     : <p className="cp-value">{form.website || '—'}</p>
                   }
                 </div>
                 <div className="cp-field-group">
-                  <label className="cp-label">Email de contact</label>
+                  <label className="cp-label">{t.contactEmail}</label>
                   {editing
-                    ? <input className="cp-input" value={form.email} onChange={e => set('email', e.target.value)} placeholder="rh@entreprise.cm" />
+                    ? <input className="cp-input" value={form.email} onChange={e => set('email', e.target.value)} placeholder={t.contactEmailPlaceholder} />
                     : <p className="cp-value">{form.email || '—'}</p>
                   }
                 </div>
               </div>
 
               <div className="cp-field-group">
-                <label className="cp-label">Description</label>
+                <label className="cp-label">{t.description}</label>
                 {editing
                   ? (
                     <textarea
@@ -193,7 +192,7 @@ export default function CompanyProfile() {
                       rows={4}
                       value={form.description}
                       onChange={e => set('description', e.target.value)}
-                      placeholder="Décrivez votre entreprise, vos valeurs, votre mission…"
+                      placeholder={t.descriptionPlaceholder}
                     />
                   )
                   : <p className="cp-value cp-value--multi">{form.description || '—'}</p>
@@ -205,17 +204,17 @@ export default function CompanyProfile() {
 
           {/* ── Preview panel ── */}
           <aside className="cp-preview-panel">
-            <p className="cp-preview-title">Aperçu candidat</p>
+            <p className="cp-preview-title">{t.previewTitle}</p>
             <div className="cp-preview-card">
               <div className="cp-preview-cover">
                 <div className="cp-preview-logo">{baseCompany?.logo || '🏢'}</div>
               </div>
               <div className="cp-preview-body">
-                <h3 className="cp-preview-name">{form.name || 'Nom de l\'entreprise'}</h3>
+                <h3 className="cp-preview-name">{form.name || t.previewDefaultName}</h3>
                 {form.tagline && <p className="cp-preview-tagline">{form.tagline}</p>}
                 <div className="cp-preview-meta">
                   <span><Building2 size={12} /> {form.sector}</span>
-                  <span><Users size={12} /> {form.size} employés</span>
+                  <span><Users size={12} /> {form.size} {t.employees}</span>
                   <span><MapPin size={12} /> {form.city}, {form.country}</span>
                 </div>
                 {baseCompany && (
@@ -229,7 +228,7 @@ export default function CompanyProfile() {
                       />
                     ))}
                     <span className="cp-preview-rating-val">{baseCompany.rating}</span>
-                    <span className="cp-preview-rating-count">({baseCompany.reviewCount} avis)</span>
+                    <span className="cp-preview-rating-count">({baseCompany.reviewCount} {t.reviews})</span>
                   </div>
                 )}
                 {form.description && (

@@ -5,7 +5,7 @@
 .mp-shell {
   padding: 32px 40px;
   min-height: 100vh;
-  background: #f9f8f7;
+  background: var(--surface-page);
 }
 
 /* ─── Header ─────────────────────────────────────────────── */
@@ -14,13 +14,13 @@
 .mp-title {
   font-size: 24px;
   font-weight: 700;
-  color: #2d2d2d;
+  color: var(--text-primary);
   margin-bottom: 6px;
 }
 
 .mp-sub {
   font-size: 14px;
-  color: #595959;
+  color: var(--text-secondary);
 }
 
 /* ─── KPI cards ──────────────────────────────────────────── */
@@ -35,8 +35,8 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  background: #fff;
-  border: 1px solid #e8e6e3;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
   padding: 18px 20px;
 }
@@ -44,13 +44,13 @@
 .mp-kpi-val {
   font-size: 22px;
   font-weight: 700;
-  color: #2d2d2d;
+  color: var(--text-primary);
   line-height: 1;
 }
 
 .mp-kpi-label {
   font-size: 12px;
-  color: #767676;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
@@ -80,7 +80,7 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #767676;
+  color: var(--text-muted);
   pointer-events: none;
 }
 
@@ -88,11 +88,11 @@
   width: 100%;
   box-sizing: border-box;
   padding: 9px 12px 9px 36px;
-  border: 1px solid #d4d2d0;
+  border: 1px solid var(--surface-border);
   border-radius: 4px;
   font-size: 14px;
-  background: #fff;
-  color: #2d2d2d;
+  background: var(--surface-card);
+  color: var(--text-primary);
   outline: none;
 }
 
@@ -105,11 +105,11 @@
 .mp-filter {
   appearance: none;
   padding: 9px 32px 9px 12px;
-  border: 1px solid #d4d2d0;
+  border: 1px solid var(--surface-border);
   border-radius: 4px;
   font-size: 14px;
-  background: #fff;
-  color: #2d2d2d;
+  background: var(--surface-card);
+  color: var(--text-primary);
   cursor: pointer;
   outline: none;
   min-width: 160px;
@@ -122,7 +122,7 @@
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: #767676;
+  color: var(--text-muted);
   pointer-events: none;
 }
 
@@ -140,7 +140,7 @@
 .mp-loading {
   text-align: center;
   padding: 48px;
-  color: #767676;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
@@ -150,14 +150,14 @@
   align-items: center;
   gap: 10px;
   padding: 64px;
-  color: #767676;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
 /* ─── Table ──────────────────────────────────────────────── */
 .mp-table-wrap {
-  background: #fff;
-  border: 1px solid #e8e6e3;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
   overflow-x: auto;
 }
@@ -166,7 +166,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
-  color: #2d2d2d;
+  color: var(--text-primary);
 }
 
 .mp-table th {
@@ -174,22 +174,22 @@
   padding: 12px 16px;
   font-size: 12px;
   font-weight: 600;
-  color: #595959;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  border-bottom: 1px solid #e8e6e3;
-  background: #f9f8f7;
+  border-bottom: 1px solid var(--surface-border);
+  background: var(--surface-page);
   white-space: nowrap;
 }
 
 .mp-table td {
   padding: 14px 16px;
-  border-bottom: 1px solid #f3f2f1;
+  border-bottom: 1px solid var(--surface-border-soft);
   vertical-align: middle;
 }
 
 .mp-table tbody tr:last-child td { border-bottom: none; }
-.mp-table tbody tr:hover { background: #fafafa; }
+.mp-table tbody tr:hover { background: var(--surface-border-soft); }
 
 .mp-td-title { max-width: 240px; }
 .mp-td-center { text-align: center; }

@@ -11,5 +11,11 @@ public record ApplicationDTO(
     String matchExplanation,
     String candidateName,
     String candidateEmail,
-    String jobTitle
+    String jobTitle,
+    String candidatePhone,
+    String companyId,
+    String employerName,
+    String employerPhone,
+    String jobLocation,
+    String jobType
 ) {}

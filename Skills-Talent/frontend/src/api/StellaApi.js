@@ -1,7 +1,6 @@
 import axiosInstance from './AxiosInstance'
 import { STELLA_RESPONSES, searchJobs, COMPANIES } from '../data/mockData'
-import { CONTACTS } from '../store/MessageStore'
-import { getRecommendedJobs, estimateProfileSalary } from '../utils/matchingUtils'
+import { getRecommendedJobs, estimateProfileSalary, profileCompleteness } from '../utils/matchingUtils'
 
 // ─── Online check ─────────────────────────────────────────────────────────────
 export const isOnline = () => navigator.onLine
@@ -17,62 +16,18 @@ export async function webSearch(query) {
   }
 }
 
-// ─── Global app search (jobs + companies + contacts) ─────────────────────────
+// ─── Global app search (jobs + companies) ─────────────────────────────────────
 export function appSearch(query) {
   const q = query.toLowerCase()
   const jobs      = searchJobs(q, '', {}).slice(0, 4)
   const companies = COMPANIES.filter(c =>
     c.name.toLowerCase().includes(q) || c.sector.toLowerCase().includes(q)
   ).slice(0, 3)
-  const contacts  = CONTACTS.filter(c =>
-    c.name.toLowerCase().includes(q) ||
-    c.company.toLowerCase().includes(q) ||
-    c.role.toLowerCase().includes(q)
-  ).slice(0, 3)
-  return { jobs, companies, contacts }
-}
-
-// ─── Contact intent detection ─────────────────────────────────────────────────
-function detectContactIntent(message) {
-  const m = message.toLowerCase()
-
-  const isContactIntent =
-    m.match(/contact|message|écri|envoie|whatsapp|mettre en contact|parler à|parler avec/) !== null
-
-  if (!isContactIntent) return null
-
-  // Try to match a known contact by name or company
-  const matched = CONTACTS.find(c =>
-    m.includes(c.name.toLowerCase()) ||
-    m.includes(c.company.toLowerCase())
-  )
-
-  const isWhatsApp = m.match(/whatsapp|wa\.me|sms|texto/) !== null
-
-  if (matched && isWhatsApp) {
-    return { type: 'whatsapp', contact: matched }
-  }
-  if (matched) {
-    return { type: 'start_conversation', contact: matched }
-  }
-
-  // No specific contact found — ask which one
-  if (isContactIntent) {
-    return { type: 'list_contacts' }
-  }
-
-  return null
+  return { jobs, companies }
 }
 
 // ─── Main chat with STELLA ────────────────────────────────────────────────────
 export async function stellaChat(message, { history = [], profile = null, online = true } = {}) {
-  // Check contact/WhatsApp intent locally first
-  const intent = detectContactIntent(message)
-  if (intent) {
-    const localResult = buildContactIntentReply(intent)
-    return { ...localResult, source: 'local' }
-  }
-
   // Try backend
   try {
     const res = await axiosInstance.post('/stella/chat', {
@@ -83,37 +38,7 @@ export async function stellaChat(message, { history = [], profile = null, online
     }, { timeout: 8000 })
     return { text: res.data.reply, source: 'backend' }
   } catch {
-    return { text: generateLocalReply(message, { profile, online }), source: 'local' }
-  }
-}
-
-// ─── Build reply for contact/WhatsApp intents ─────────────────────────────────
-function buildContactIntentReply(intent) {
-  if (intent.type === 'whatsapp') {
-    const { contact } = intent
-    const waText = encodeURIComponent(
-      `Bonjour ${contact.name}, je vous contacte via SkillSet concernant une opportunité professionnelle.`
-    )
-    const waUrl = `https://wa.me/${contact.phone}?text=${waText}`
-    return {
-      text: `Je vais vous mettre en contact avec **${contact.name}** (${contact.role}) sur WhatsApp.\n\nCliquez sur le bouton ci-dessous pour ouvrir WhatsApp avec un message pré-rempli :`,
-      action: { type: 'whatsapp', contact, url: waUrl },
-    }
-  }
-
-  if (intent.type === 'start_conversation') {
-    const { contact } = intent
-    return {
-      text: `Je vais ouvrir une conversation avec **${contact.name}** (${contact.role}). Cliquez ci-dessous pour accéder à la messagerie :`,
-      action: { type: 'start_conversation', contact },
-    }
-  }
-
-  // list_contacts
-  const list = CONTACTS.map(c => `• ${c.avatar} **${c.name}** — ${c.role}`).join('\n')
-  return {
-    text: `Voici les contacts disponibles :\n\n${list}\n\nDites-moi avec qui vous souhaitez entrer en contact, ou si vous voulez leur envoyer un message WhatsApp.`,
-    action: null,
+    return { text: await generateLocalReply(message, { profile, online }), source: 'local' }
   }
 }
 
@@ -133,19 +58,28 @@ export async function runStellaTask(taskId, profile) {
       return `💰 Estimation de salaire pour **${profile?.jobTitle || 'votre poste'}** :\n\n• Minimum : ${fmt(est.min)} ${est.currency}\n• Médiane : ${fmt(est.median)} ${est.currency}\n• Maximum : ${fmt(est.max)} ${est.currency}\n\n_Confiance : ${est.confidence} · Basé sur les offres du marché camerounais._`
     }
 
-    case 'apply-top': {
-      const jobs = getRecommendedJobs(profile, 1)
-      if (jobs.length === 0) return "Aucune offre trouvée pour postuler automatiquement."
-      await new Promise(r => setTimeout(r, 1500))
-      return `✅ J'ai soumis votre candidature pour **${jobs[0].title}** chez ${jobs[0].company} !\n\nVotre CV et lettre de motivation générés par IA ont été envoyés. Vous pouvez suivre cette candidature dans **Mes emplois > Candidatures**.`
-    }
-
     case 'profile-analysis': {
-      const skills  = profile?.skills || []
-      const missing = ['LinkedIn', 'Portfolio', 'Lettre de motivation', 'Photo professionnelle']
-        .filter(() => Math.random() > 0.5)
-      const score   = 65 + Math.floor(Math.random() * 25)
-      return `📊 Analyse de votre profil (score : **${score}/100**) :\n\n✅ Points forts : ${skills.slice(0, 3).join(', ') || 'À compléter'}\n⚠️ À améliorer : ${missing.join(', ') || 'Profil complet !'}\n\n💡 Conseil STELLA : Ajoutez vos certifications pour augmenter votre visibilité de 30%.`
+      const score = profileCompleteness(profile)
+      const skillsArr = Array.isArray(profile?.skills)
+        ? profile.skills
+        : (profile?.skills ? String(profile.skills).split(',').map(s => s.trim()).filter(Boolean) : [])
+
+      const fieldLabels = {
+        firstName: 'Prénom', lastName: 'Nom', email: 'Email', city: 'Ville',
+        jobTitle: 'Poste recherché', skills: 'Compétences', bio: 'Bio', phone: 'Téléphone',
+      }
+      const missing = Object.entries(fieldLabels)
+        .filter(([key]) => {
+          const v = profile?.[key]
+          return !(v && (Array.isArray(v) ? v.length > 0 : String(v).trim().length > 0))
+        })
+        .map(([, label]) => label)
+
+      const advice = missing.length > 0
+        ? `Complétez votre **${missing[0]}** pour augmenter la pertinence de vos recommandations.`
+        : 'Votre profil est complet — continuez à le tenir à jour !'
+
+      return `📊 Analyse de votre profil (score : **${score}/100**) :\n\n✅ Compétences renseignées : ${skillsArr.slice(0, 3).join(', ') || 'Aucune'}\n⚠️ Champs manquants : ${missing.join(', ') || 'Aucun'}\n\n💡 Conseil STELLA : ${advice}`
     }
 
     case 'prepare-interview': {
@@ -160,7 +94,7 @@ export async function runStellaTask(taskId, profile) {
 }
 
 // ─── Local reply generator ────────────────────────────────────────────────────
-function generateLocalReply(message, { profile, online }) {
+async function generateLocalReply(message, { profile, online }) {
   const m = message.toLowerCase()
 
   if (!online && m.match(/internet|web|cherche/)) {
@@ -176,9 +110,18 @@ function generateLocalReply(message, { profile, online }) {
   if (m.match(/aide|help|que peux|que sais/))       return STELLA_RESPONSES.aide
   if (m.match(/merci|super|top|parfait/))           return "Avec plaisir ! 😊 N'hésitez pas si vous avez d'autres questions."
 
-  return online
-    ? `Je vais chercher des informations sur "${message}"...\n\n_Résultats issus de SkillSet & internet_`
-    : STELLA_RESPONSES.fallback
+  if (online) {
+    const results = await webSearch(message)
+    if (results?.abstractText) {
+      return `${results.abstractText}\n\n_Source : ${results.abstractUrl || 'recherche web'}_`
+    }
+    if (results?.relatedTopics?.length) {
+      const list = results.relatedTopics.slice(0, 3).map(t => `• ${t.text}`).join('\n')
+      return `Voici ce que j'ai trouvé sur "${message}" :\n\n${list}`
+    }
+  }
+
+  return STELLA_RESPONSES.fallback
 }
 
 function replyGreeting(profile) {

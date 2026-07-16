@@ -9,4 +9,6 @@ public interface MessageRepositoryPort {
     Optional<Message> findById(String id);
     List<Message> findBySenderIdAndRecipientId(String senderId, String recipientId);
     List<Message> findByRecipientIdAndIsReadFalse(String recipientId);
+    List<Message> findBySender_Id(String senderId);
+    List<Message> findByRecipient_Id(String recipientId);
 }

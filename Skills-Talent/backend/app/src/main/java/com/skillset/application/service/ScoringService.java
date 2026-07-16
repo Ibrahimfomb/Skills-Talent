@@ -3,7 +3,9 @@ package com.skillset.application.service;
 import com.skillset.application.dto.ScoredCandidateDTO;
 import com.skillset.application.dto.ScoredJobDTO;
 import com.skillset.domain.entity.CandidateProfile;
+import com.skillset.domain.entity.EmployerProfile;
 import com.skillset.domain.entity.JobListing;
+import com.skillset.domain.port.EmployerProfileRepositoryPort;
 import com.skillset.infrastructure.persistence.CandidateProfileRepository;
 import com.skillset.infrastructure.persistence.JobListingRepository;
 import com.skillset.infrastructure.persistence.UserRepository;
@@ -23,6 +25,7 @@ public class ScoringService {
     private final UserRepository userRepository;
     private final CandidateProfileRepository candidateProfileRepository;
     private final JobListingRepository jobListingRepository;
+    private final EmployerProfileRepositoryPort employerProfileRepositoryPort;
 
     /**
      * Calculate the match score between a job and a candidate.
@@ -38,13 +41,15 @@ public class ScoringService {
         double locationScore = calculateLocationScore(job, candidate);
         double availabilityScore = calculateAvailabilityScore(candidate);
         double titleScore = calculateTitleScore(job, candidate);
+        double domainScore = calculateDomainScore(job, candidate);
 
         return new ScoredJobDTO.ScoreBreakdown(
             skillsScore,
             experienceScore,
             locationScore,
             availabilityScore,
-            titleScore
+            titleScore,
+            domainScore
         );
     }
 
@@ -127,7 +132,7 @@ public class ScoringService {
     }
 
     /**
-     * Skills Match (0-40 pts):
+     * Skills Match (0-35 pts):
      * Count intersection of required skills and candidate skills divided by job required skills.
      */
     private double calculateSkillsScore(JobListing job, CandidateProfile candidate) {
@@ -136,15 +141,15 @@ public class ScoringService {
             Set<String> candidateSkills = parseSkills(candidate.getSkills());
 
             if (requiredSkills.isEmpty()) {
-                return 40.0; // No required skills = full score
+                return 35.0; // No required skills = full score
             }
 
             long matchCount = requiredSkills.stream()
                 .filter(candidateSkills::contains)
                 .count();
 
-            double score = (double) matchCount / requiredSkills.size() * 40.0;
-            return Math.min(40.0, score); // Cap at 40
+            double score = (double) matchCount / requiredSkills.size() * 35.0;
+            return Math.min(35.0, score); // Cap at 35
         } catch (Exception e) {
             return 0.0; // Parsing failed = no score
         }
@@ -221,11 +226,11 @@ public class ScoringService {
     }
 
     /**
-     * Availability (0-15 pts):
-     * Available now (date <= today): 15 pts.
-     * Available within 30 days: 10 pts.
-     * Available > 30 days: 5 pts.
-     * No availability date: 10 pts (assume flexible).
+     * Availability (0-10 pts):
+     * Available now (date <= today): 10 pts.
+     * Available within 30 days: 7 pts.
+     * Available > 30 days: 3 pts.
+     * No availability date: 7 pts (assume flexible).
      */
     private double calculateAvailabilityScore(CandidateProfile candidate) {
         try {
@@ -233,39 +238,39 @@ public class ScoringService {
 
             // No availability date = assume flexible
             if (availabilityStr == null || availabilityStr.trim().isEmpty()) {
-                return 10.0;
+                return 7.0;
             }
 
             LocalDate availabilityDate = parseAvailabilityDate(availabilityStr);
             if (availabilityDate == null) {
-                return 10.0; // Parse failed = assume flexible
+                return 7.0; // Parse failed = assume flexible
             }
 
             LocalDate today = LocalDate.now();
 
             // Available now or in the past
             if (!availabilityDate.isAfter(today)) {
-                return 15.0;
+                return 10.0;
             }
 
             // Days until availability
             long daysUntilAvailable = java.time.temporal.ChronoUnit.DAYS.between(today, availabilityDate);
 
             if (daysUntilAvailable <= 30) {
-                return 10.0;
+                return 7.0;
             }
 
-            return 5.0;
+            return 3.0;
         } catch (Exception e) {
-            return 10.0; // Parsing failed = assume flexible
+            return 7.0; // Parsing failed = assume flexible
         }
     }
 
     /**
-     * Title/Keywords (0-10 pts):
+     * Title/Keywords (0-5 pts):
      * Check if candidate.desiredRole or job.title match keywords.
-     * Exact match: 10 pts.
-     * Partial match: 5 pts.
+     * Exact match: 5 pts.
+     * Partial match: 2.5 pts.
      * No match: 0 pts.
      */
     private double calculateTitleScore(JobListing job, CandidateProfile candidate) {
@@ -279,12 +284,12 @@ public class ScoringService {
 
             // Exact match
             if (jobTitle.equalsIgnoreCase(desiredRole)) {
-                return 10.0;
+                return 5.0;
             }
 
             // Partial match - check if one contains the other or they share significant words
             if (jobTitle.contains(desiredRole) || desiredRole.contains(jobTitle)) {
-                return 5.0;
+                return 2.5;
             }
 
             // Check for keyword overlap
@@ -296,12 +301,39 @@ public class ScoringService {
                 .count();
 
             if (matchingWords > 0) {
-                return 5.0;
+                return 2.5;
             }
 
             return 0.0;
         } catch (Exception e) {
             return 0.0; // Parsing failed = no score
+        }
+    }
+
+    /**
+     * Domain Match (0-15 pts):
+     * Compares the candidate's declared job domain against the employer's industry
+     * (resolved via the job's owning EmployerProfile). Missing data on either side is
+     * treated as neutral (full score) rather than penalized, since domain isn't always
+     * populated during onboarding.
+     */
+    private double calculateDomainScore(JobListing job, CandidateProfile candidate) {
+        try {
+            Optional<EmployerProfile> employerOpt = employerProfileRepositoryPort.findByUserId(job.getCompanyId());
+            if (employerOpt.isEmpty()) {
+                return 15.0;
+            }
+
+            String industry = employerOpt.get().getIndustry();
+            String jobDomain = candidate.getJobDomain();
+
+            if (industry == null || industry.trim().isEmpty() || jobDomain == null || jobDomain.trim().isEmpty()) {
+                return 15.0;
+            }
+
+            return normalizeForComparison(industry).equals(normalizeForComparison(jobDomain)) ? 15.0 : 0.0;
+        } catch (Exception e) {
+            return 15.0;
         }
     }
 
@@ -314,7 +346,8 @@ public class ScoringService {
                 breakdown.experiencePoints() +
                 breakdown.locationPoints() +
                 breakdown.availabilityPoints() +
-                breakdown.titlePoints();
+                breakdown.titlePoints() +
+                breakdown.domainPoints();
 
         // Ensure score is between 0 and 100
         return Math.max(0.0, Math.min(100.0, total));

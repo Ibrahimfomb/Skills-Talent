@@ -23,6 +23,7 @@ import AdminAnalytics         from '../pages/admin/AdminAnalytics'
 import ModerationPanel        from '../pages/admin/ModerationPanel'
 import UserManagement         from '../pages/admin/UserManagement'
 import CareersPage            from '../pages/public/CareersPage'
+import HomePage                from '../pages/public/HomePage'
 import NotificationListener   from '../features/notifications/NotificationListener'
 import ConsentBanner          from '../features/consent/ConsentBanner'
 import ProtectedRoute         from './ProtectedRoute'
@@ -54,7 +55,7 @@ const AppRouter = () => (
   <BrowserRouter>
     <Routes>
       {/* Public */}
-      <Route path="/"                  element={<Navigate to="/login" replace />} />
+      <Route path="/"                  element={<HomePage />} />
       <Route path="/login"             element={<LoginPage />} />
       <Route path="/register"          element={<RegisterPage />} />
       <Route path="/careers/:slug"     element={<CareersPage />} />
@@ -129,12 +130,6 @@ const AppRouter = () => (
       } />
       <Route path="/admin/users" element={
         <ProtectedRoute><RoleGuard roles={['ADMIN']}><UserManagement /></RoleGuard></ProtectedRoute>
-      } />
-      <Route path="/admin/jobs" element={
-        <ProtectedRoute><RoleGuard roles={['ADMIN']}><AdminStats /></RoleGuard></ProtectedRoute>
-      } />
-      <Route path="/admin/applications" element={
-        <ProtectedRoute><RoleGuard roles={['ADMIN']}><AdminStats /></RoleGuard></ProtectedRoute>
       } />
       <Route path="/admin/moderation" element={
         <ProtectedRoute><RoleGuard roles={['ADMIN']}><ModerationPanel /></RoleGuard></ProtectedRoute>

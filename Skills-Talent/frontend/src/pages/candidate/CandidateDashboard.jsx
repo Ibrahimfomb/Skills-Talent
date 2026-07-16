@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Search, MapPin, CircleUser,
@@ -8,27 +8,50 @@ import {
 import { useAuthStore }     from '../../store/AuthStore'
 import { useUserDataStore } from '../../store/UserDataStore'
 import { getRecommendedJobs, profileCompleteness } from '../../utils/matchingUtils'
+import { getSuggestedJobs } from '../../api/JobApi'
 import AppNavbar            from '../../components/common/AppNavbar'
+import { useTranslation }   from '../../i18n/translations'
 import './CandidateDashboard.css'
 
-const SUGGESTIONS = [
-  'Développeur web', 'Commercial', 'Comptable', 'Data analyst',
-  'Chef de projet', 'Community manager', 'Infirmier', 'Graphiste',
-  'Ressources humaines', 'Chargé de communication',
-]
+const QUICK_LINK_ICONS = {
+  '/jobs': <Briefcase size={22} />,
+  '/profile': <CircleUser size={22} />,
+  '/applications': <FileText size={22} />,
+}
+
+// ScoredJobDTO has no company name/logo — substitute jobType/a neutral emoji for those display-only fields.
+function mapScoredJobsToCardShape(jobs) {
+  return jobs.map(job => ({
+    id: job.id,
+    title: job.title,
+    company: job.jobType || '',
+    logo: '🏢',
+    location: job.location,
+    matchPct: Math.round(job.score),
+  }))
+}
 
 export default function CandidateDashboard() {
   const navigate = useNavigate()
   const { user }                                = useAuthStore()
   const { savedJobs, applications, interviews } = useUserDataStore()
-  const firstName = user?.firstName || 'vous'
+  const t = useTranslation().candidate.dashboard
+  const firstName = user?.firstName || t.defaultName
 
   const profile = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('ss_profile') || 'null') ?? user } catch { return user }
   }, [user])
 
-  const recommendedJobs = useMemo(() => getRecommendedJobs(profile, 3), [profile])
-  const completeness    = useMemo(() => profileCompleteness(profile), [profile])
+  const mockRecommendedJobs = useMemo(() => getRecommendedJobs(profile, 6), [profile])
+  const [apiRecommendedJobs, setApiRecommendedJobs] = useState(null)
+  const recommendedJobs = apiRecommendedJobs ?? mockRecommendedJobs
+  const completeness = useMemo(() => profileCompleteness(profile), [profile])
+
+  useEffect(() => {
+    getSuggestedJobs()
+      .then(jobs => { if (jobs?.length) setApiRecommendedJobs(mapScoredJobsToCardShape(jobs).slice(0, 6)) })
+      .catch(() => {})
+  }, [])
 
   const [query, setQuery]       = useState('')
   const [location, setLocation] = useState('')
@@ -53,6 +76,8 @@ export default function CandidateDashboard() {
     try { localStorage.setItem(`ss_searches_${user?.id}`, JSON.stringify(updated)) } catch { /* ignore */ }
   }
 
+  const countLabel = (count, { singular, plural }) => `${count} ${count !== 1 ? plural : singular}`
+
   return (
     <div className="cd-shell">
       <div className="cd-blob cd-blob--main" />
@@ -67,7 +92,7 @@ export default function CandidateDashboard() {
             <Search size={16} className="cd-search-icon" />
             <input
               className="cd-search-input"
-              placeholder="Poste, compétences, mots-clés…"
+              placeholder={t.searchQueryPlaceholder}
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && doSearch()}
@@ -78,14 +103,14 @@ export default function CandidateDashboard() {
             <MapPin size={16} className="cd-search-icon" />
             <input
               className="cd-search-input"
-              placeholder="Ville ou code postal…"
+              placeholder={t.searchLocationPlaceholder}
               value={location}
               onChange={e => setLocation(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && doSearch()}
             />
           </div>
           <button className="cd-search-btn" onClick={() => doSearch()}>
-            Rechercher
+            {t.searchButton}
           </button>
         </div>
       </div>
@@ -95,20 +120,31 @@ export default function CandidateDashboard() {
         <div className="cd-content">
 
           <p className="cd-welcome">
-            Bonjour, <span className="cd-welcome-name">{firstName}</span> 👋
+            {t.welcomePrefix} <span className="cd-welcome-name">{firstName}</span> 👋
           </p>
+
+          {/* Bannière croisée — bascule vers le parcours employeur */}
+          <div className="cd-switch-banner">
+            <div>
+              <h2>{t.switchRoleTitle}</h2>
+              <p>{t.switchRoleSub}</p>
+            </div>
+            <button className="cd-switch-btn" onClick={() => navigate('/register?role=EMPLOYER')}>
+              <Briefcase size={16} /> {t.switchRoleButton}
+            </button>
+          </div>
 
           {/* Complétude du profil */}
           {completeness < 100 && (
             <div className="cd-profile-bar-wrap">
               <div className="cd-profile-bar-info">
-                <span>Profil complété à <strong>{completeness}%</strong></span>
+                <span>{t.profileComplete.replace('{pct}', completeness)}</span>
               </div>
               <div className="cd-profile-bar-track">
                 <div className="cd-profile-bar-fill" style={{ width: `${completeness}%` }} />
               </div>
               <button className="cd-profile-bar-btn" onClick={() => navigate('/profile')}>
-                Compléter mon profil →
+                {t.completeProfileCta}
               </button>
             </div>
           )}
@@ -117,24 +153,29 @@ export default function CandidateDashboard() {
           <div className="cd-stats-row">
             <div className="cd-stat-chip">
               <Briefcase size={14} />
-              {applications.length} Candidature{applications.length !== 1 ? 's' : ''}
+              {countLabel(applications.length, t.stats.applications)}
             </div>
             <div className="cd-stat-chip">
               <BookmarkCheck size={14} />
-              {savedJobs.length} Offre{savedJobs.length !== 1 ? 's' : ''} sauvegardée{savedJobs.length !== 1 ? 's' : ''}
+              {countLabel(savedJobs.length, t.stats.savedJobs)}
             </div>
             <div className="cd-stat-chip">
               <CalendarCheck size={14} />
-              {interviews.length} Entretien{interviews.length !== 1 ? 's' : ''}
+              {countLabel(interviews.length, t.stats.interviews)}
             </div>
           </div>
 
           {/* Recommandations STELLA */}
           {recommendedJobs.length > 0 && (
             <div className="cd-section">
-              <p className="cd-section-title">
-                <Sparkles size={14} /> Recommandations STELLA
-              </p>
+              <div className="cd-section-header">
+                <p className="cd-section-title">
+                  <Sparkles size={14} /> {t.recommendationsTitle}
+                </p>
+                <button className="cd-section-link" onClick={() => navigate('/jobs')}>
+                  {t.seeAllOpportunities}
+                </button>
+              </div>
               <div className="cd-recommended-list">
                 {recommendedJobs.map(job => (
                   <button
@@ -157,10 +198,10 @@ export default function CandidateDashboard() {
           {/* Recherches récentes */}
           <div className="cd-section">
             <p className="cd-section-title">
-              <Clock size={14} /> Recherches récentes
+              <Clock size={14} /> {t.recentSearchesTitle}
             </p>
             {recentSearches.length === 0 ? (
-              <p className="cd-empty-hint">Aucune recherche enregistrée.</p>
+              <p className="cd-empty-hint">{t.noRecentSearches}</p>
             ) : (
               <div className="cd-recent-list">
                 {recentSearches.map(s => (
@@ -169,13 +210,13 @@ export default function CandidateDashboard() {
                       className="cd-recent-chip-btn"
                       onClick={() => { setQuery(s.q); setLocation(s.l); doSearch(s.q, s.l) }}
                     >
-                      {s.q || 'Toutes offres'}
+                      {s.q || t.allOffers}
                       {s.l && <span className="cd-recent-loc">· {s.l}</span>}
                     </button>
                     <button
                       className="cd-recent-del"
                       onClick={() => removeSearch(s.id)}
-                      aria-label="Supprimer"
+                      aria-label={t.removeSearch}
                     >
                       <X size={11} />
                     </button>
@@ -187,9 +228,9 @@ export default function CandidateDashboard() {
 
           {/* Suggestions */}
           <div className="cd-section">
-            <p className="cd-section-title">Suggestions</p>
+            <p className="cd-section-title">{t.suggestionsTitle}</p>
             <div className="cd-suggestions">
-              {SUGGESTIONS.map(s => (
+              {t.suggestions.map(s => (
                 <button
                   key={s}
                   className="cd-suggestion"
@@ -203,15 +244,11 @@ export default function CandidateDashboard() {
 
           {/* Accès rapides */}
           <div className="cd-section">
-            <p className="cd-section-title">Accès rapides</p>
+            <p className="cd-section-title">{t.quickLinksTitle}</p>
             <div className="cd-quick-links">
-              {[
-                { icon: <Briefcase size={22} />,  label: 'Explorer les offres', path: '/jobs'         },
-                { icon: <CircleUser size={22} />,  label: 'Mon profil',          path: '/profile'      },
-                { icon: <FileText size={22} />,    label: 'Mes candidatures',    path: '/applications' },
-              ].map(({ icon, label, path }) => (
+              {t.quickLinks.map(({ label, path }) => (
                 <button key={path} className="cd-quick-card" onClick={() => navigate(path)}>
-                  {icon}
+                  {QUICK_LINK_ICONS[path]}
                   {label}
                 </button>
               ))}

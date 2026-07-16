@@ -7,13 +7,13 @@
 .integrations-title {
   font-size: 28px;
   font-weight: 700;
-  color: #222;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .integrations-subtitle {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 32px 0;
 }
 
@@ -64,8 +64,8 @@
 /* Integration Card */
 .integration-card {
   padding: 24px;
-  background: #fff;
-  border: 1px solid #e5e5e5;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
@@ -73,7 +73,7 @@
 
 .integration-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  border-color: #ddd;
+  border-color: var(--surface-border);
 }
 
 .integration-header {
@@ -86,13 +86,13 @@
 .integration-title {
   font-size: 18px;
   font-weight: 700;
-  color: #222;
+  color: var(--text-primary);
   margin: 0 0 4px 0;
 }
 
 .integration-description {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -114,14 +114,14 @@
 }
 
 .integration-badge--inactive {
-  background: #f5f5f5;
-  color: #999;
-  border: 1px solid #eee;
+  background: var(--surface-page-alt);
+  color: var(--text-muted);
+  border: 1px solid var(--surface-border-soft);
 }
 
 .integration-explain {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.5;
   margin: 0 0 20px 0;
 }
@@ -132,7 +132,7 @@
   justify-content: center;
   gap: 12px;
   padding: 24px;
-  color: #999;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -157,20 +157,20 @@
 
 .integration-info {
   padding: 12px 16px;
-  background: #fafafa;
+  background: var(--surface-page-alt);
   border-radius: 8px;
   border-left: 4px solid #2e7d32;
 }
 
 .integration-info-label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   margin: 0 0 4px 0;
 }
 
 .integration-info-value {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   margin: 0;
   font-weight: 500;
 }
@@ -208,7 +208,7 @@
 }
 
 .integration-btn--disconnect {
-  background: #fff;
+  background: var(--surface-card);
   color: #c42033;
   border: 1px solid #fcc;
   box-shadow: none;
@@ -241,14 +241,16 @@
 .form-label {
   font-size: 13px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .form-input {
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--surface-border);
   border-radius: 6px;
   font-size: 13px;
+  color: var(--text-primary);
+  background: var(--surface-card);
   transition: border-color 0.2s;
 }
 

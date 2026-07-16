@@ -1,14 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Check, Download, Eye } from 'lucide-react'
+import { useTranslation } from '../../i18n/translations'
 import './CvGenerationScreen.css'
 
-const GENERATION_STEPS = [
-  { id: 'analysis', label: 'Analyse de vos réponses', duration: 2000 },
-  { id: 'content', label: 'Génération du contenu IA', duration: 2500 },
-  { id: 'layout', label: 'Mise en page professionnelle', duration: 2000 },
-  { id: 'upload', label: 'Upload sécurisé', duration: 1500 },
-  { id: 'email', label: 'Envoi par email', duration: 1000 },
-]
+const STEP_IDS = ['analysis', 'content', 'layout', 'upload', 'email']
+const STEP_DURATIONS = { analysis: 2000, content: 2500, layout: 2000, upload: 1500, email: 1000 }
 
 /**
  * Écran de génération du CV.
@@ -16,21 +12,22 @@ const GENERATION_STEPS = [
  * Phase 2 : Écran succès avec aperçu CV + actions
  */
 export default function CvGenerationScreen({ cvUrl, country, onDownload, onClose }) {
+  const t = useTranslation().onboarding.cvGeneration
   const [completedSteps, setCompletedSteps] = useState([])
   const [currentStep, setCurrentStep] = useState(0)
   const [isGenerating, setIsGenerating] = useState(true)
 
   useEffect(() => {
-    if (currentStep >= GENERATION_STEPS.length) {
+    if (currentStep >= STEP_IDS.length) {
       setIsGenerating(false)
       return
     }
 
-    const step = GENERATION_STEPS[currentStep]
+    const stepId = STEP_IDS[currentStep]
     const timer = setTimeout(() => {
-      setCompletedSteps(prev => [...prev, step.id])
+      setCompletedSteps(prev => [...prev, stepId])
       setCurrentStep(prev => prev + 1)
-    }, step.duration)
+    }, STEP_DURATIONS[stepId])
 
     return () => clearTimeout(timer)
   }, [currentStep])
@@ -40,18 +37,18 @@ export default function CvGenerationScreen({ cvUrl, country, onDownload, onClose
       <div className="cgs-generating">
         <div className="cgs-generating-card">
           <div className="cgs-generating-header">
-            <h2 className="cgs-generating-title">Génération de votre CV...</h2>
-            <p className="cgs-generating-subtitle">Un instant, STELLA prépare votre profil</p>
+            <h2 className="cgs-generating-title">{t.generatingTitle}</h2>
+            <p className="cgs-generating-subtitle">{t.generatingSubtitle}</p>
           </div>
 
           <div className="cgs-steps">
-            {GENERATION_STEPS.map((step, idx) => {
-              const isCompleted = completedSteps.includes(step.id)
+            {STEP_IDS.map((stepId, idx) => {
+              const isCompleted = completedSteps.includes(stepId)
               const isCurrent = idx === currentStep && !isCompleted
 
               return (
                 <div
-                  key={step.id}
+                  key={stepId}
                   className={`cgs-step ${isCompleted ? 'cgs-step--completed' : ''} ${isCurrent ? 'cgs-step--current' : ''}`}
                 >
                   <div className="cgs-step-icon">
@@ -63,7 +60,7 @@ export default function CvGenerationScreen({ cvUrl, country, onDownload, onClose
                       <div className="cgs-step-dot" />
                     )}
                   </div>
-                  <span className="cgs-step-label">{step.label}</span>
+                  <span className="cgs-step-label">{t.steps[stepId]}</span>
                 </div>
               )
             })}
@@ -73,7 +70,7 @@ export default function CvGenerationScreen({ cvUrl, country, onDownload, onClose
             <div
               className="cgs-progress-fill"
               style={{
-                width: `${(completedSteps.length / GENERATION_STEPS.length) * 100}%`,
+                width: `${(completedSteps.length / STEP_IDS.length) * 100}%`,
               }}
             />
           </div>
@@ -90,8 +87,8 @@ export default function CvGenerationScreen({ cvUrl, country, onDownload, onClose
           <div className="cgs-success-icon">
             <Check size={32} />
           </div>
-          <h2 className="cgs-success-title">CV généré avec succès !</h2>
-          <p className="cgs-success-subtitle">Votre profil professionnel est prêt</p>
+          <h2 className="cgs-success-title">{t.successTitle}</h2>
+          <p className="cgs-success-subtitle">{t.successSubtitle}</p>
         </div>
 
         <div className="cgs-success-body">
@@ -103,9 +100,9 @@ export default function CvGenerationScreen({ cvUrl, country, onDownload, onClose
               </div>
             </div>
             <div className="cgs-cv-info">
-              <p className="cgs-cv-format">Format : PDF</p>
-              <p className="cgs-cv-country">Adapté pour {country || 'votre pays'}</p>
-              <p className="cgs-cv-ats">✓ Optimisé ATS</p>
+              <p className="cgs-cv-format">{t.formatLabel}</p>
+              <p className="cgs-cv-country">{t.adaptedFor} {country || t.yourCountry}</p>
+              <p className="cgs-cv-ats">{t.atsOptimized}</p>
             </div>
           </div>
 
@@ -113,16 +110,16 @@ export default function CvGenerationScreen({ cvUrl, country, onDownload, onClose
             <div className="cgs-message cgs-message--email">
               <span className="cgs-message-icon">✉️</span>
               <div className="cgs-message-text">
-                <p className="cgs-message-title">Email envoyé</p>
-                <p className="cgs-message-desc">Un lien de téléchargement vous a été envoyé</p>
+                <p className="cgs-message-title">{t.emailSentTitle}</p>
+                <p className="cgs-message-desc">{t.emailSentDesc}</p>
               </div>
             </div>
 
             <div className="cgs-message cgs-message--offers">
               <span className="cgs-message-icon">🎯</span>
               <div className="cgs-message-text">
-                <p className="cgs-message-title">Offres personnalisées</p>
-                <p className="cgs-message-desc">Vos offres d'emploi sont maintenant filtrées pour {country || 'vous'}</p>
+                <p className="cgs-message-title">{t.personalizedOffersTitle}</p>
+                <p className="cgs-message-desc">{t.personalizedOffersDesc} {country || t.you}</p>
               </div>
             </div>
           </div>
@@ -137,19 +134,19 @@ export default function CvGenerationScreen({ cvUrl, country, onDownload, onClose
               onClick={onDownload}
             >
               <Download size={16} />
-              Télécharger mon CV
+              {t.downloadCv}
             </a>
           )}
 
           <button className="cgs-btn cgs-btn--secondary" onClick={onClose}>
             <Eye size={16} />
-            Voir mon profil
+            {t.viewProfile}
           </button>
         </div>
 
         <div className="cgs-success-footer">
           <p className="cgs-footer-text">
-            💡 Conseil : Mettez à jour votre CV régulièrement pour refléter vos dernières expériences
+            {t.footerTip}
           </p>
         </div>
       </div>

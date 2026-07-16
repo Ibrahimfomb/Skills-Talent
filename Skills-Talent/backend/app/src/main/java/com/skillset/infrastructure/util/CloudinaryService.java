@@ -64,6 +64,31 @@ public class CloudinaryService {
     }
 
     /**
+     * Upload une photo de profil (image) sur Cloudinary.
+     * Retourne l'URL sécurisée, ou null si Cloudinary n'est pas configuré.
+     */
+    public String uploadImage(MultipartFile file) {
+        if (cloudinary == null) return null;
+
+        try {
+            String publicId = "skillset/avatars/" + UUID.randomUUID();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "resource_type", "image",
+                            "public_id",     publicId,
+                            "overwrite",     true
+                    )
+            );
+            return (String) result.get("secure_url");
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Échec de l'envoi de la photo sur Cloudinary : " + e.getMessage());
+        }
+    }
+
+    /**
      * Upload un PDF généré côté serveur (bytes bruts, pas de MultipartFile) sur Cloudinary.
      * Retourne l'URL sécurisée, ou null si Cloudinary n'est pas configuré ou en cas d'échec.
      */

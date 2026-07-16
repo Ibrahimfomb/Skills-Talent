@@ -1,6 +1,8 @@
 package com.skillset.interfaces.controller;
 
 import com.skillset.application.dto.JobListingDTO;
+import com.skillset.application.dto.ScoredCandidateDTO;
+import com.skillset.application.dto.ScoredJobDTO;
 import com.skillset.application.service.JobService;
 import com.skillset.domain.entity.JobListing;
 import lombok.RequiredArgsConstructor;
@@ -27,8 +29,16 @@ public class JobController {
     }
 
     @GetMapping
-    public ResponseEntity<List<JobListingDTO>> getAllOpenJobs() {
-        List<JobListingDTO> jobs = jobService.getAllJobs();
+    public ResponseEntity<List<JobListingDTO>> getAllOpenJobs(
+            @AuthenticationPrincipal String userId,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String sector,
+            @RequestParam(required = false) Integer salaryMin,
+            @RequestParam(required = false) Boolean remote,
+            @RequestParam(required = false) String sort) {
+        List<JobListingDTO> jobs = jobService.searchJobs(userId, q, location, type, sector, salaryMin, remote, sort);
         return ResponseEntity.ok(jobs);
     }
 
@@ -46,6 +56,12 @@ public class JobController {
         return ResponseEntity.ok(jobs);
     }
 
+    @GetMapping("/suggested")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ResponseEntity<List<ScoredJobDTO>> getSuggestedJobs(@AuthenticationPrincipal String userId) {
+        return ResponseEntity.ok(jobService.getSuggestedJobs(userId));
+    }
+
     @GetMapping("/{jobId}")
     public ResponseEntity<JobListing> getJobById(@PathVariable String jobId) {
         var job = jobService.getJobById(jobId);
@@ -53,6 +69,13 @@ public class JobController {
             return ResponseEntity.ok(job.get());
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/{jobId}/suggested-candidates")
+    @PreAuthorize("hasRole('EMPLOYER')")
+    public ResponseEntity<List<ScoredCandidateDTO>> getSuggestedCandidates(
+            @AuthenticationPrincipal String userId, @PathVariable String jobId) {
+        return ResponseEntity.ok(jobService.getSuggestedCandidates(userId, jobId));
     }
 
     @PutMapping("/{jobId}")

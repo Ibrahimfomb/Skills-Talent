@@ -2,14 +2,16 @@ import { useState, useEffect } from 'react'
 import { ChevronDown, Plus } from 'lucide-react'
 import { getTalentPools, addCandidateToPool } from '../../api/TalentPoolApi'
 import TalentPoolCreateModal from './TalentPoolCreateModal'
+import { useTranslation } from '../../i18n/translations'
 
 export default function AddToPoolButton({ candidateId, onSuccess }) {
+  const t = useTranslation().talentPoolButton
   const [pools, setPools] = useState([])
   const [open, setOpen] = useState(false)
-  const [selectedPoolId, setSelectedPoolId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [toastMessage, setToastMessage] = useState(null)
+  const [toastIsError, setToastIsError] = useState(false)
 
   useEffect(() => {
     loadPools()
@@ -29,12 +31,14 @@ export default function AddToPoolButton({ candidateId, onSuccess }) {
       setLoading(true)
       await addCandidateToPool(poolId, candidateId, '', 'SEARCH_RESULTS')
       setOpen(false)
-      setToastMessage(`Ajouté au vivier "${poolName}"`)
+      setToastIsError(false)
+      setToastMessage(`${t.addedToPool} "${poolName}"`)
       if (onSuccess) onSuccess()
       setTimeout(() => setToastMessage(null), 3000)
     } catch (err) {
       console.error('Error adding candidate to pool:', err)
-      setToastMessage('Erreur lors de l\'ajout au vivier')
+      setToastIsError(true)
+      setToastMessage(t.addError)
       setTimeout(() => setToastMessage(null), 3000)
     } finally {
       setLoading(false)
@@ -53,9 +57,9 @@ export default function AddToPoolButton({ candidateId, onSuccess }) {
         <div style={{
           position: 'fixed', bottom: '20px', right: '20px', zIndex: 2000,
           padding: '12px 20px', borderRadius: '6px', fontSize: '13px',
-          background: toastMessage.includes('Erreur') ? '#fee' : '#e8f5e9',
-          color: toastMessage.includes('Erreur') ? '#c42033' : '#2e7d32',
-          border: toastMessage.includes('Erreur') ? '1px solid #fcc' : '1px solid #c8e6c9',
+          background: toastIsError ? '#fee' : '#e8f5e9',
+          color: toastIsError ? '#c42033' : '#2e7d32',
+          border: toastIsError ? '1px solid #fcc' : '1px solid #c8e6c9',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
           {toastMessage}
@@ -90,7 +94,7 @@ export default function AddToPoolButton({ candidateId, onSuccess }) {
           }}
         >
           <Plus size={14} />
-          Ajouter au vivier
+          {t.addToPool}
           <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0)' }} />
         </button>
 
@@ -98,8 +102,8 @@ export default function AddToPoolButton({ candidateId, onSuccess }) {
         {open && (
           <div style={{
             position: 'absolute', top: '100%', left: 0, marginTop: '8px', zIndex: 1000,
-            minWidth: '200px', background: '#fff', borderRadius: '8px',
-            border: '1px solid #ddd', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            minWidth: '200px', background: 'var(--surface-card)', borderRadius: '8px',
+            border: '1px solid var(--surface-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             animation: 'slideDown 0.2s ease-out'
           }}>
             <style>{`
@@ -110,8 +114,8 @@ export default function AddToPoolButton({ candidateId, onSuccess }) {
             `}</style>
 
             {pools.length === 0 ? (
-              <div style={{ padding: '16px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
-                Aucun vivier disponible
+              <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                {t.noPoolsAvailable}
               </div>
             ) : (
               <>
@@ -124,22 +128,22 @@ export default function AddToPoolButton({ candidateId, onSuccess }) {
                       display: 'block', width: '100%', padding: '12px 16px',
                       textAlign: 'left', border: 'none', background: 'none',
                       cursor: loading ? 'not-allowed' : 'pointer', fontSize: '13px',
-                      color: '#333', borderBottom: '1px solid #ebebeb', transition: 'background 0.2s'
+                      color: 'var(--text-primary)', borderBottom: '1px solid var(--surface-border-soft)', transition: 'background 0.2s'
                     }}
                     onMouseEnter={(e) => {
-                      if (!loading) e.target.style.background = '#f5f5f5'
+                      if (!loading) e.target.style.background = 'var(--surface-border-soft)'
                     }}
                     onMouseLeave={(e) => {
                       e.target.style.background = 'none'
                     }}
                   >
                     <div style={{ fontWeight: 500, marginBottom: '2px' }}>{pool.name}</div>
-                    <div style={{ fontSize: '12px', color: '#999' }}>
-                      {pool.totalMembers || 0} membre{pool.totalMembers !== 1 ? 's' : ''}
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      {pool.totalMembers || 0} {pool.totalMembers !== 1 ? t.members.plural : t.members.singular}
                     </div>
                   </button>
                 ))}
-                <div style={{ height: '1px', background: '#ebebeb' }} />
+                <div style={{ height: '1px', background: 'var(--surface-border-soft)' }} />
               </>
             )}
 
@@ -156,11 +160,11 @@ export default function AddToPoolButton({ candidateId, onSuccess }) {
                 fontWeight: 500, transition: 'background 0.2s',
                 borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px'
               }}
-              onMouseEnter={(e) => e.target.style.background = '#fff5f7'}
+              onMouseEnter={(e) => e.target.style.background = 'var(--surface-page-alt)'}
               onMouseLeave={(e) => e.target.style.background = 'none'}
             >
               <Plus size={14} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
-              Créer un nouveau vivier
+              {t.createNewPool}
             </button>
           </div>
         )}

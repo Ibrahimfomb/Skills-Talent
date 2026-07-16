@@ -1,18 +1,25 @@
-import { MapPin, Clock, Users, Wifi, Bookmark, BookmarkCheck, ChevronRight } from 'lucide-react'
+import { MapPin, Clock, Users, Wifi, Bookmark, BookmarkCheck, ChevronRight, Send, CheckCircle2 } from 'lucide-react'
+import { useTranslation } from '../../i18n/translations'
 import './JobCard.css'
 
-function postedLabel(days) {
-  if (days === 0) return "Aujourd'hui"
-  if (days === 1) return 'Hier'
-  return `Il y a ${days} j`
-}
-
-export default function JobCard({ job, onSave, onClick, compact }) {
+export default function JobCard({ job, onSave, onClick, onApply, applied, compact }) {
+  const t = useTranslation().candidate.jobSearch
   const saved = job.saved ?? false
+
+  const postedLabel = (days) => {
+    if (days === 0) return t.today
+    if (days === 1) return t.yesterday
+    return t.daysAgo.replace('{n}', days)
+  }
 
   const handleSave = (e) => {
     e.stopPropagation()
     onSave?.()
+  }
+
+  const handleApply = (e) => {
+    e.stopPropagation()
+    onApply?.(job)
   }
 
   const handleKey = (e) => {
@@ -38,7 +45,7 @@ export default function JobCard({ job, onSave, onClick, compact }) {
         <button
           className={`jc-save ${saved ? 'jc-save--active' : ''}`}
           onClick={handleSave}
-          aria-label={saved ? 'Retirer des favoris' : 'Sauvegarder'}
+          aria-label={saved ? t.removeFavorite : t.save}
         >
           {saved ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
         </button>
@@ -46,8 +53,11 @@ export default function JobCard({ job, onSave, onClick, compact }) {
 
       <div className="jc-badges">
         <span className="jc-badge">{job.type}</span>
-        {job.remote && <span className="jc-badge jc-badge--remote"><Wifi size={10} /> Télétravail</span>}
-        {job.featured && <span className="jc-badge jc-badge--featured">⭐ En vedette</span>}
+        {job.remote && <span className="jc-badge jc-badge--remote"><Wifi size={10} /> {t.remote}</span>}
+        {job.featured && <span className="jc-badge jc-badge--featured">⭐ {t.featured}</span>}
+        {job.matchPct != null && (
+          <span className="jc-badge jc-badge--match">{t.matchBadge.replace('{n}', job.matchPct)}</span>
+        )}
       </div>
 
       {!compact && <p className="jc-description">{job.description}</p>}
@@ -55,12 +65,12 @@ export default function JobCard({ job, onSave, onClick, compact }) {
       <div className="jc-info">
         <span className="jc-info-item"><MapPin size={13} />{job.location}</span>
         <span className="jc-info-item"><Clock size={13} />{postedLabel(job.postedDaysAgo)}</span>
-        <span className="jc-info-item"><Users size={13} />{job.applicants} candidats</span>
+        <span className="jc-info-item"><Users size={13} />{job.applicants} {t.applicants}</span>
       </div>
 
       <div className="jc-footer">
         <span className="jc-salary">💰 {salaryStr}</span>
-        <span className="jc-apply">Voir l'offre <ChevronRight size={14} /></span>
+        <span className="jc-apply">{t.viewOffer} <ChevronRight size={14} /></span>
       </div>
 
       {!compact && (
@@ -69,6 +79,16 @@ export default function JobCard({ job, onSave, onClick, compact }) {
             <span key={s} className="jc-skill">{s}</span>
           ))}
         </div>
+      )}
+
+      {onApply && (
+        applied ? (
+          <div className="jc-applied-pill"><CheckCircle2 size={15} /> {t.applied}</div>
+        ) : (
+          <button className="jc-quick-apply" onClick={handleApply}>
+            <Send size={14} /> {t.applyNow}
+          </button>
+        )
       )}
     </div>
   )

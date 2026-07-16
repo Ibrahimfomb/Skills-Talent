@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CircleUser,
   MapPin, Clock, ChevronRight, Video, Building2, AlertCircle,
-  ArrowRight,
+  ArrowRight, MessageCircle,
 } from 'lucide-react'
 import { useUserDataStore } from '../../store/UserDataStore'
+import { useAuthStore }     from '../../store/AuthStore'
+import { getCandidateApplications } from '../../api/ApplicationApi'
+import { buildWhatsAppLink } from '../../utils/whatsapp'
 import AppNavbar            from '../../components/common/AppNavbar'
+import { useTranslation }   from '../../i18n/translations'
 import './MyApplications.css'
-
-const STAGE_STEPS = ['CV transmis', 'Test technique', 'Entretien RH', 'Entretien final', 'Décision']
 
 const STATUS_STYLE = {
   'En cours':   { background: '#dbeafe', color: '#1d4ed8' },
@@ -18,17 +20,59 @@ const STATUS_STYLE = {
   'Confirmé':   { background: '#dcfce7', color: '#166534' },
 }
 
+const STATUS_MAP = {
+  SUBMITTED: { status: 'En attente', stage: 'CV transmis',      stageIndex: 0 },
+  SCREENING: { status: 'En cours',   stage: 'Test technique',   stageIndex: 1 },
+  INTERVIEW: { status: 'En cours',   stage: 'Entretien RH',     stageIndex: 2 },
+  OFFER:     { status: 'En cours',   stage: 'Entretien final',  stageIndex: 3 },
+  APPROVED:  { status: 'Confirmé',   stage: 'Décision',         stageIndex: 4 },
+  REJECTED:  { status: 'Refusé',     stage: 'Candidature non retenue', stageIndex: 0 },
+  WITHDRAWN: { status: 'Refusé',     stage: 'Candidature retirée', stageIndex: 0 },
+}
+
+const WHATSAPP_ELIGIBLE_STATUSES = new Set(['SCREENING', 'INTERVIEW', 'OFFER', 'APPROVED'])
+
+function mapRealApplications(dtos) {
+  return dtos.map(dto => {
+    const meta = STATUS_MAP[dto.status] || STATUS_MAP.SUBMITTED
+    return {
+      id: dto.id,
+      jobTitle: dto.jobTitle,
+      company: dto.employerName || '',
+      location: dto.jobLocation || '',
+      type: dto.jobType || '',
+      appliedDate: '',
+      ...meta,
+      employerPhone: dto.employerPhone,
+      employerName: dto.employerName,
+      rawStatus: dto.status,
+    }
+  })
+}
+
 export default function MyApplications() {
   const navigate = useNavigate()
-  const { savedJobs, applications, interviews, archives, unsaveJob } = useUserDataStore()
+  const { user } = useAuthStore()
+  const { savedJobs, applications: mockApplications, interviews, archives, unsaveJob } = useUserDataStore()
+  const t = useTranslation().candidate.myApplications
+
+  const [realApplications, setRealApplications] = useState(null)
+  useEffect(() => {
+    if (!user?.id) return
+    getCandidateApplications(user.id)
+      .then(dtos => setRealApplications(mapRealApplications(dtos)))
+      .catch(() => {})
+  }, [user?.id])
+
+  const applications = realApplications ?? mockApplications
 
   const [activeTab, setActiveTab] = useState('saved')
 
   const TABS = [
-    { id: 'saved',        count: savedJobs.length,    label: 'Emplois enregistrés' },
-    { id: 'applications', count: applications.length, label: 'Candidatures' },
-    { id: 'interviews',   count: interviews.length,   label: 'Entretiens' },
-    { id: 'archives',     count: archives.length,     label: 'Archivées' },
+    { id: 'saved',        count: savedJobs.length,    label: t.tabs.saved },
+    { id: 'applications', count: applications.length, label: t.tabs.applications },
+    { id: 'interviews',   count: interviews.length,   label: t.tabs.interviews },
+    { id: 'archives',     count: archives.length,     label: t.tabs.archives },
   ]
 
   return (
@@ -40,7 +84,7 @@ export default function MyApplications() {
 
       {/* Page header */}
       <div className="ma-page-header">
-        <h1 className="ma-page-title">Mes emplois</h1>
+        <h1 className="ma-page-title">{t.pageTitle}</h1>
       </div>
 
       {/* Tab bar */}
@@ -69,10 +113,10 @@ export default function MyApplications() {
             {savedJobs.length === 0 && (
               <div className="ma-empty">
                 <div className="ma-empty-illo">🔖</div>
-                <p className="ma-empty-title">Aucun emploi enregistré</p>
-                <p className="ma-empty-hint">Les offres que vous enregistrez sont affichées ici.</p>
+                <p className="ma-empty-title">{t.savedEmptyTitle}</p>
+                <p className="ma-empty-hint">{t.savedEmptyHint}</p>
                 <button className="ma-cta-btn" onClick={() => navigate('/jobs')}>
-                  Rechercher un emploi <ArrowRight size={15} />
+                  {t.findJob} <ArrowRight size={15} />
                 </button>
               </div>
             )}
@@ -84,13 +128,13 @@ export default function MyApplications() {
                   <p className="ma-job-company">{job.company}</p>
                   <div className="ma-job-meta">
                     <span><MapPin size={11} />{job.location}</span>
-                    <span><Clock size={11} />Sauvegardé le {job.savedAt?.split('T')[0]}</span>
+                    <span><Clock size={11} />{t.savedOn} {job.savedAt?.split('T')[0]}</span>
                     {job.type && <span className="ma-badge">{job.type}</span>}
                   </div>
                 </div>
                 <div className="ma-job-actions">
-                  <button className="ma-btn-primary" onClick={() => navigate('/jobs')}>Voir l&apos;offre</button>
-                  <button className="ma-btn-ghost" onClick={() => unsaveJob(job.id)}>Retirer</button>
+                  <button className="ma-btn-primary" onClick={() => navigate('/jobs')}>{t.viewOffer}</button>
+                  <button className="ma-btn-ghost" onClick={() => unsaveJob(job.id)}>{t.remove}</button>
                 </div>
               </div>
             ))}
@@ -103,10 +147,10 @@ export default function MyApplications() {
             {applications.length === 0 && (
               <div className="ma-empty">
                 <div className="ma-empty-illo">📄</div>
-                <p className="ma-empty-title">Aucune candidature envoyée</p>
-                <p className="ma-empty-hint">Postulez à des offres pour suivre vos candidatures ici.</p>
+                <p className="ma-empty-title">{t.applicationsEmptyTitle}</p>
+                <p className="ma-empty-hint">{t.applicationsEmptyHint}</p>
                 <button className="ma-cta-btn" onClick={() => navigate('/jobs')}>
-                  Chercher un emploi <ArrowRight size={15} />
+                  {t.searchJob} <ArrowRight size={15} />
                 </button>
               </div>
             )}
@@ -126,18 +170,18 @@ export default function MyApplications() {
                   </span>
                 </div>
                 <div className="ma-app-meta">
-                  <span><Clock size={11} />Postulé le {app.appliedDate}</span>
+                  <span><Clock size={11} />{t.appliedOn} {app.appliedDate}</span>
                   {app.type   && <span className="ma-badge">{app.type}</span>}
                   {app.salary && <span className="ma-salary-text">{app.salary}</span>}
                 </div>
                 {app.status !== 'Refusé' && (
                   <div className="ma-pipeline">
-                    {STAGE_STEPS.map((s, i) => {
+                    {t.stageSteps.map((s, i) => {
                       const done    = i < (app.stageIndex ?? 0)
                       const current = i === (app.stageIndex ?? 0)
                       return (
                         <div key={s} className="ma-pipeline-step">
-                          {i < STAGE_STEPS.length - 1 && (
+                          {i < t.stageSteps.length - 1 && (
                             <div className={`ma-pipeline-line${done ? ' done' : ''}`} />
                           )}
                           <div className={`ma-pipeline-dot${done ? ' done' : current ? ' current' : ''}`} />
@@ -149,8 +193,18 @@ export default function MyApplications() {
                 )}
                 {app.status === 'Refusé' && (
                   <div className="ma-refused-note">
-                    <AlertCircle size={13} /> {app.stage || 'Candidature non retenue'}
+                    <AlertCircle size={13} /> {app.stage || t.notRetained}
                   </div>
+                )}
+                {WHATSAPP_ELIGIBLE_STATUSES.has(app.rawStatus) && app.employerPhone && (
+                  <a
+                    className="ma-whatsapp-btn"
+                    href={buildWhatsAppLink(app.employerPhone, t.whatsappMessage?.replace('{job}', app.jobTitle))}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <MessageCircle size={13} /> {t.contactWhatsapp}
+                  </a>
                 )}
               </div>
             ))}
@@ -163,8 +217,8 @@ export default function MyApplications() {
             {interviews.length === 0 && (
               <div className="ma-empty">
                 <div className="ma-empty-illo">📅</div>
-                <p className="ma-empty-title">Aucun entretien prévu</p>
-                <p className="ma-empty-hint">Vos entretiens programmés apparaîtront ici.</p>
+                <p className="ma-empty-title">{t.interviewsEmptyTitle}</p>
+                <p className="ma-empty-hint">{t.interviewsEmptyHint}</p>
               </div>
             )}
             {interviews.map(itv => (
@@ -186,8 +240,8 @@ export default function MyApplications() {
                   <div className="ma-itv-detail-item">
                     <Clock size={14} className="ma-itv-icon" />
                     <div>
-                      <p className="ma-itv-label">Date &amp; heure</p>
-                      <p className="ma-itv-value">{itv.date} à {itv.time}</p>
+                      <p className="ma-itv-label">{t.dateTime}</p>
+                      <p className="ma-itv-value">{itv.date} {t.at} {itv.time}</p>
                     </div>
                   </div>
                   <div className="ma-itv-detail-item">
@@ -195,37 +249,33 @@ export default function MyApplications() {
                       ? <Video size={14} className="ma-itv-icon" />
                       : <Building2 size={14} className="ma-itv-icon" />}
                     <div>
-                      <p className="ma-itv-label">Format</p>
+                      <p className="ma-itv-label">{t.format}</p>
                       <p className="ma-itv-value">{itv.type}{itv.platform ? ` · ${itv.platform}` : ''}</p>
                     </div>
                   </div>
                   <div className="ma-itv-detail-item">
                     <CircleUser size={14} className="ma-itv-icon" />
                     <div>
-                      <p className="ma-itv-label">Contact</p>
+                      <p className="ma-itv-label">{t.contact}</p>
                       <p className="ma-itv-value">{itv.contact}</p>
                     </div>
                   </div>
                 </div>
                 {itv.calendlyLink && (
-                  <div style={{ padding: '10px 16px', borderTop: '1px solid #f0f0f0' }}>
+                  <div className="ma-calendly-wrap">
                     <a
                       href={itv.calendlyLink}
                       target="_blank"
                       rel="noreferrer"
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '7px 14px', background: '#6366f1', color: '#fff',
-                        borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none',
-                      }}
+                      className="ma-calendly-link"
                     >
-                      📅 Confirmer via Calendly
+                      📅 {t.confirmCalendly}
                     </a>
                   </div>
                 )}
                 {itv.notes && (
                   <div className="ma-itv-notes">
-                    <p className="ma-itv-notes-label">Notes de préparation</p>
+                    <p className="ma-itv-notes-label">{t.prepNotes}</p>
                     <p className="ma-itv-notes-body">{itv.notes}</p>
                   </div>
                 )}
@@ -240,8 +290,8 @@ export default function MyApplications() {
             {archives.length === 0 && (
               <div className="ma-empty">
                 <div className="ma-empty-illo">📁</div>
-                <p className="ma-empty-title">Aucune archive</p>
-                <p className="ma-empty-hint">Les candidatures clôturées seront archivées ici.</p>
+                <p className="ma-empty-title">{t.archivesEmptyTitle}</p>
+                <p className="ma-empty-hint">{t.archivesEmptyHint}</p>
               </div>
             )}
             {archives.map(arc => (
@@ -251,8 +301,8 @@ export default function MyApplications() {
                   <p className="ma-job-title">{arc.jobTitle}</p>
                   <p className="ma-job-company">{arc.company}</p>
                   <div className="ma-job-meta">
-                    <span><Clock size={11} />Postulé le {arc.appliedDate}</span>
-                    {arc.closedDate && <span><Clock size={11} />Clôturé le {arc.closedDate}</span>}
+                    <span><Clock size={11} />{t.appliedOn} {arc.appliedDate}</span>
+                    {arc.closedDate && <span><Clock size={11} />{t.closedOn} {arc.closedDate}</span>}
                   </div>
                   {arc.reason && <p className="ma-archive-reason">{arc.reason}</p>}
                 </div>

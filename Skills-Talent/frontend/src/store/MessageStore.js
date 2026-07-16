@@ -1,113 +1,141 @@
 import { create } from 'zustand'
-
-// ── Contacts directory (searchable by STELLA & new-conversation modal) ─────────
-export const CONTACTS = [
-  { id: 'hr-orange',   name: 'Marie Kamga',     role: 'RH · Orange Cameroun',            avatar: '🟠', online: true,  phone: '237699003344', company: 'Orange Cameroun' },
-  { id: 'hr-startup',  name: 'Béatrice Enow',   role: 'RH · StartupCMR',                 avatar: '🚀', online: false, phone: '237655004455', company: 'StartupCMR' },
-  { id: 'hr-sgc',      name: 'Pierre Mvondo',   role: 'DG · Société Générale Cameroun',  avatar: '🔴', online: true,  phone: '237677001122', company: 'Société Générale Cameroun' },
-  { id: 'hr-deloitte', name: 'Sophie Atangana', role: 'DRH · Deloitte Afrique Centrale', avatar: '🔵', online: false, phone: '237699001122', company: 'Deloitte Afrique Centrale' },
-  { id: 'hr-mtn',      name: 'Boris Fouda',     role: 'Talent Acquisition · MTN',        avatar: '🟡', online: true,  phone: '237677002233', company: 'MTN Cameroun' },
-  { id: 'hr-total',    name: 'Claire Nguema',   role: 'RH · TotalEnergies Cameroun',     avatar: '⚫', online: false, phone: '237655001122', company: 'TotalEnergies Cameroun' },
-  { id: 'hr-jumia',    name: 'Roland Tamba',    role: 'RH · Jumia Cameroun',             avatar: '🟢', online: false, phone: '237699005566', company: 'Jumia Cameroun' },
-  { id: 'hr-afriland', name: 'Estelle Mballa',  role: 'Recrutement · Afriland First Bank',avatar: '🏦', online: true,  phone: '237677006677', company: 'Afriland First Bank' },
-]
-
-const MOCK_CONVERSATIONS = [
-  {
-    id: 'conv1',
-    participants: ['user', 'hr-orange'],
-    contact: CONTACTS.find(c => c.id === 'hr-orange'),
-    messages: [
-      { id: 'm1', from: 'hr-orange', text: 'Bonjour, nous avons bien reçu votre candidature pour le poste de Data Analyst.', time: '2026-06-07T10:15:00', read: true },
-      { id: 'm2', from: 'user',      text: 'Bonjour Mme Kamga, merci pour votre retour ! Je suis très intéressé par cette opportunité.', time: '2026-06-07T10:32:00', read: true },
-      { id: 'm3', from: 'hr-orange', text: 'Parfait. Seriez-vous disponible pour un entretien téléphonique jeudi à 10h ?', time: '2026-06-07T10:45:00', read: true },
-      { id: 'm4', from: 'user',      text: 'Oui tout à fait, jeudi 10h me convient parfaitement.', time: '2026-06-07T11:00:00', read: true },
-      { id: 'm5', from: 'hr-orange', text: "Super ! Je vous envoie le lien de connexion par email. À jeudi !", time: '2026-06-07T11:05:00', read: false },
-    ],
-    unread: 1,
-    lastMessage: "Super ! Je vous envoie le lien de connexion par email. À jeudi !",
-    lastTime: '2026-06-07T11:05:00',
-  },
-  {
-    id: 'conv2',
-    participants: ['user', 'hr-startup'],
-    contact: CONTACTS.find(c => c.id === 'hr-startup'),
-    messages: [
-      { id: 'm6', from: 'hr-startup', text: "Bonjour ! Suite à votre candidature au poste de Développeur React Senior, nous aimerions vous faire passer un test technique.", time: '2026-06-06T14:30:00', read: true },
-      { id: 'm7', from: 'user',       text: 'Bonjour Mme Enow, avec plaisir ! Quel est le format du test ?', time: '2026-06-06T15:10:00', read: true },
-      { id: 'm8', from: 'hr-startup', text: "C'est un test de 2h en ligne sur une mini-application React. Je vous envoie les détails.", time: '2026-06-06T15:30:00', read: true },
-    ],
-    unread: 0,
-    lastMessage: "C'est un test de 2h en ligne. Je vous envoie les détails.",
-    lastTime: '2026-06-06T15:30:00',
-  },
-]
+import {
+  getConversations,
+  getConversation,
+  sendMessage as apiSendMessage,
+  markAsRead,
+} from '../api/MessageApi'
 
 export const useMessageStore = create((set, get) => ({
-  conversations: MOCK_CONVERSATIONS,
+  conversations: [],
   activeConvId:  null,
-  totalUnread:   MOCK_CONVERSATIONS.reduce((acc, c) => acc + c.unread, 0),
+  totalUnread:   0,
 
-  setActiveConv: (id) => {
-    set({ activeConvId: id })
-    if (id) get().markConvRead(id)
+  loadConversations: async () => {
+    const dtos = await getConversations()
+    const conversations = dtos.map(d => ({
+      otherUserId:     d.otherUserId,
+      otherUserName:   d.otherUserName,
+      lastMessage:     d.lastMessage,
+      lastMessageTime: d.lastMessageTime,
+      unreadCount:     d.unreadCount,
+      messages:        null,
+    }))
+    set({
+      conversations,
+      totalUnread: conversations.reduce((acc, c) => acc + c.unreadCount, 0),
+    })
   },
 
-  // Create a new conversation (or activate existing one). Returns the conv id.
-  startConversation: (contact) => {
-    const existing = get().conversations.find(c => c.contact.id === contact.id)
+  setActiveConv: async (otherUserId, myUserId) => {
+    set({ activeConvId: otherUserId })
+    if (!otherUserId) return
+    const conv = get().conversations.find(c => c.otherUserId === otherUserId)
+    if (!conv || conv.messages !== null) return
+
+    const messages = await getConversation(myUserId, otherUserId)
+    messages
+      .filter(m => m.recipientId === myUserId && !m.isRead)
+      .forEach(m => { markAsRead(m.id).catch(() => {}) })
+
+    set(s => {
+      const target = s.conversations.find(c => c.otherUserId === otherUserId)
+      const unreadDelta = target ? target.unreadCount : 0
+      return {
+        conversations: s.conversations.map(c =>
+          c.otherUserId === otherUserId ? { ...c, messages, unreadCount: 0 } : c
+        ),
+        totalUnread: Math.max(0, s.totalUnread - unreadDelta),
+      }
+    })
+  },
+
+  startConversation: (otherUserId, otherUserName) => {
+    const existing = get().conversations.find(c => c.otherUserId === otherUserId)
     if (existing) {
-      get().setActiveConv(existing.id)
-      return existing.id
+      set({ activeConvId: otherUserId })
+      return otherUserId
     }
     const newConv = {
-      id: `conv-${Date.now()}`,
-      participants: ['user', contact.id],
-      contact: { ...contact },
-      messages: [],
-      unread: 0,
-      lastMessage: '',
-      lastTime: new Date().toISOString(),
+      otherUserId,
+      otherUserName,
+      lastMessage:     '',
+      lastMessageTime: null,
+      unreadCount:     0,
+      messages:        [],
     }
-    set(s => ({ conversations: [newConv, ...s.conversations] }))
-    get().setActiveConv(newConv.id)
-    return newConv.id
+    set(s => ({ conversations: [newConv, ...s.conversations], activeConvId: otherUserId }))
+    return otherUserId
   },
 
-  markConvRead: (convId) => set(s => {
-    const conv = s.conversations.find(c => c.id === convId)
-    if (!conv || conv.unread === 0) return s
-    return {
-      conversations: s.conversations.map(c =>
-        c.id === convId
-          ? { ...c, unread: 0, messages: c.messages.map(m => ({ ...m, read: true })) }
-          : c
-      ),
-      totalUnread: Math.max(0, s.totalUnread - conv.unread),
+  sendMessage: (otherUserId, text, myUserId) => {
+    const now = new Date().toISOString()
+    const optimistic = {
+      id: `local-${Date.now()}`,
+      senderId: myUserId,
+      recipientId: otherUserId,
+      content: text,
+      isRead: true,
+      sentAt: now,
     }
-  }),
-
-  sendMessage: (convId, text) => {
-    const msg = { id: `m-${Date.now()}`, from: 'user', text, time: new Date().toISOString(), read: true }
     set(s => ({
       conversations: s.conversations.map(c =>
-        c.id === convId
-          ? { ...c, messages: [...c.messages, msg], lastMessage: text, lastTime: msg.time }
+        c.otherUserId === otherUserId
+          ? { ...c, messages: [...(c.messages ?? []), optimistic], lastMessage: text, lastMessageTime: now }
           : c
       ),
     }))
+
+    apiSendMessage(otherUserId, text)
+      .then(saved => {
+        set(s => ({
+          conversations: s.conversations.map(c =>
+            c.otherUserId === otherUserId
+              ? { ...c, messages: c.messages.map(m => m.id === optimistic.id ? { ...m, id: saved.id } : m) }
+              : c
+          ),
+        }))
+      })
+      .catch(err => console.error('Failed to send message', err))
   },
 
-  receiveMessage: (convId, text, fromId) => {
-    const msg  = { id: `m-${Date.now()}`, from: fromId, text, time: new Date().toISOString(), read: false }
-    const isActive = get().activeConvId === convId
-    set(s => ({
-      conversations: s.conversations.map(c =>
-        c.id === convId
-          ? { ...c, messages: [...c.messages, msg], lastMessage: text, lastTime: msg.time, unread: isActive ? 0 : c.unread + 1 }
-          : c
-      ),
-      totalUnread: isActive ? s.totalUnread : s.totalUnread + 1,
-    }))
+  receiveMessage: (dto, myUserId) => {
+    if (dto.senderId === myUserId) return
+    const otherUserId = dto.senderId
+    const isActive = get().activeConvId === otherUserId
+    const now = new Date().toISOString()
+    const incoming = { ...dto, sentAt: now }
+
+    set(s => {
+      const existing = s.conversations.find(c => c.otherUserId === otherUserId)
+      if (existing) {
+        return {
+          conversations: s.conversations.map(c =>
+            c.otherUserId === otherUserId
+              ? {
+                  ...c,
+                  messages:        c.messages ? [...c.messages, incoming] : c.messages,
+                  lastMessage:     dto.content,
+                  lastMessageTime: now,
+                  unreadCount:     isActive ? c.unreadCount : c.unreadCount + 1,
+                }
+              : c
+          ),
+          totalUnread: isActive ? s.totalUnread : s.totalUnread + 1,
+        }
+      }
+      const newConv = {
+        otherUserId,
+        otherUserName:   otherUserId,
+        lastMessage:     dto.content,
+        lastMessageTime: now,
+        unreadCount:     isActive ? 0 : 1,
+        messages:        [incoming],
+      }
+      return {
+        conversations: [newConv, ...s.conversations],
+        totalUnread: isActive ? s.totalUnread : s.totalUnread + 1,
+      }
+    })
   },
 }))

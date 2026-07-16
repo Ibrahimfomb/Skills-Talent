@@ -16,6 +16,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,22 +53,22 @@ public class CvGeneratorService {
             byte[] pdfBytes = generatePdfFromHtml(html);
             log.info("CV PDF généré ({} bytes)", pdfBytes.length);
 
-            // 3. Upload sur Cloudinary
+            // 3. Upload sur Cloudinary (si configuré)
             String cvUrl = uploadCvToCloudinary(userId, pdfBytes, cvData);
-            if (cvUrl == null) {
-                log.error("Échec upload Cloudinary pour user {}", userId);
-                return null;
+            if (cvUrl != null) {
+                log.info("CV uploadé: {}", cvUrl);
+                // 4. Mettre à jour profil candidat + 5. Envoyer email avec CV (uniquement possible avec une vraie URL)
+                updateCandidateProfile(userId, cvUrl);
+                sendCvEmail(userId, cvUrl, cvData);
+                log.info("CV généré et livré avec succès pour user {}", userId);
+                return cvUrl;
             }
-            log.info("CV uploadé: {}", cvUrl);
 
-            // 4. Mettre à jour profil candidat
-            updateCandidateProfile(userId, cvUrl);
-
-            // 5. Envoyer email avec CV
-            sendCvEmail(userId, cvUrl, cvData);
-            log.info("CV généré et livré avec succès pour user {}", userId);
-
-            return cvUrl;
+            // Cloudinary non configuré (ex. environnement de dev) : on renvoie quand même
+            // le PDF généré directement au navigateur via une data URI, plutôt que d'échouer.
+            log.warn("Cloudinary non configuré — le CV est renvoyé directement en data URI pour user {} "
+                    + "(non stocké, pas d'email envoyé)", userId);
+            return "data:application/pdf;base64," + Base64.getEncoder().encodeToString(pdfBytes);
         } catch (Exception e) {
             log.error("Erreur génération CV pour user {}", userId, e);
             return null;

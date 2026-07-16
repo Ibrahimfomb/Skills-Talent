@@ -4,12 +4,14 @@ import { X, Star, Send, Loader2, CalendarPlus, ExternalLink } from 'lucide-react
 import MatchScoreBadge from '../matching/MatchScoreBadge'
 import { getReviews, addReview } from '../../api/ReviewApi'
 import { scheduleInterview }     from '../../api/InterviewApi'
+import { usePreferencesStore }  from '../../store/PreferencesStore'
+import { useTranslation }       from '../../i18n/translations'
 import './ReviewPanel.css'
 
-function StarRating({ value, onChange }) {
+function StarRating({ value, onChange, t }) {
   const [hover, setHover] = useState(0)
   return (
-    <div className="rp-stars" role="group" aria-label="Note">
+    <div className="rp-stars" role="group" aria-label={t.rating}>
       {[1, 2, 3, 4, 5].map(n => (
         <button
           key={n}
@@ -18,7 +20,7 @@ function StarRating({ value, onChange }) {
           onClick={() => onChange(n)}
           onMouseEnter={() => setHover(n)}
           onMouseLeave={() => setHover(0)}
-          aria-label={`${n} étoile${n > 1 ? 's' : ''}`}
+          aria-label={`${n} ${n > 1 ? t.star.plural : t.star.singular}`}
         >
           <Star size={20} />
         </button>
@@ -26,23 +28,13 @@ function StarRating({ value, onChange }) {
     </div>
   )
 }
-StarRating.propTypes = { value: PropTypes.number.isRequired, onChange: PropTypes.func.isRequired }
-
-const STATUS_OPTIONS = [
-  { value: 'PENDING',    label: 'En attente' },
-  { value: 'SHORTLIST',  label: 'Présélectionné' },
-  { value: 'RECOMMEND',  label: 'Recommandé' },
-  { value: 'DECLINE',    label: 'Refusé' },
-]
-
-function fmtDate(iso) {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
-}
+StarRating.propTypes = { value: PropTypes.number.isRequired, onChange: PropTypes.func.isRequired, t: PropTypes.object.isRequired }
 
 const EMPTY_ITW = { scheduledAt: '', interviewType: 'Visioconférence', interviewLink: '', calendlyLink: '', notes: '' }
 
 export default function ReviewPanel({ card, onClose }) {
+  const { language } = usePreferencesStore()
+  const t = useTranslation().reviewPanel
   const [reviews,    setReviews]    = useState([])
   const [loading,    setLoading]    = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -57,6 +49,11 @@ export default function ReviewPanel({ card, onClose }) {
   const [itwSuccess,  setItwSuccess]  = useState(false)
   const [itwError,    setItwError]    = useState('')
 
+  const fmtDate = (iso) => {
+    if (!iso) return ''
+    return new Date(iso).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
   useEffect(() => {
     if (!card) return
     setLoading(true)
@@ -65,13 +62,13 @@ export default function ReviewPanel({ card, onClose }) {
     setItw(EMPTY_ITW)
     getReviews(card.id)
       .then(setReviews)
-      .catch(() => setError('Impossible de charger les avis.'))
+      .catch(() => setError(t.loadReviewsError))
       .finally(() => setLoading(false))
   }, [card?.id])
 
   const handleSchedule = async (e) => {
     e.preventDefault()
-    if (!itw.scheduledAt) { setItwError('Veuillez choisir une date.'); return }
+    if (!itw.scheduledAt) { setItwError(t.chooseDate); return }
     setItwSending(true)
     setItwError('')
     try {
@@ -87,7 +84,7 @@ export default function ReviewPanel({ card, onClose }) {
       })
       setItwSuccess(true)
     } catch {
-      setItwError('Erreur lors de la planification.')
+      setItwError(t.scheduleError)
     } finally {
       setItwSending(false)
     }
@@ -95,7 +92,7 @@ export default function ReviewPanel({ card, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (rating === 0) { setError('Veuillez attribuer une note.'); return }
+    if (rating === 0) { setError(t.giveRating); return }
     setSubmitting(true)
     setError('')
     try {
@@ -105,7 +102,7 @@ export default function ReviewPanel({ card, onClose }) {
       setComments('')
       setStatus('PENDING')
     } catch {
-      setError('Erreur lors de l\'envoi.')
+      setError(t.sendError)
     } finally {
       setSubmitting(false)
     }
@@ -115,28 +112,28 @@ export default function ReviewPanel({ card, onClose }) {
 
   return (
     <div className="rp-overlay" onClick={onClose}>
-      <aside className="rp-panel" onClick={e => e.stopPropagation()} role="dialog" aria-label="Avis recruteur">
+      <aside className="rp-panel" onClick={e => e.stopPropagation()} role="dialog" aria-label={t.recruiterReview}>
         {/* Header */}
         <div className="rp-header">
           <div className="rp-header-info">
             <div className="rp-avatar">{card.initials}</div>
             <div>
-              <p className="rp-name">{card.name || 'Candidat anonyme'}</p>
+              <p className="rp-name">{card.name || t.anonymousCandidate}</p>
               <p className="rp-job">{card.jobTitle}</p>
             </div>
           </div>
           <div className="rp-header-right">
             <MatchScoreBadge score={card.match} explanation={card.explanation} size="md" />
-            <button className="rp-close" onClick={onClose} aria-label="Fermer"><X size={18} /></button>
+            <button className="rp-close" onClick={onClose} aria-label={t.close}><X size={18} /></button>
           </div>
         </div>
 
         <div className="rp-body">
           {/* ── Interview scheduling ── */}
           <div className="rp-section">
-            <p className="rp-section-label"><CalendarPlus size={14} style={{ marginRight: 4 }} />Planifier un entretien</p>
+            <p className="rp-section-label"><CalendarPlus size={14} style={{ marginRight: 4 }} />{t.scheduleInterview}</p>
             {itwSuccess ? (
-              <p className="rp-itw-success">Entretien planifié avec succès !</p>
+              <p className="rp-itw-success">{t.interviewScheduled}</p>
             ) : (
               <form className="rp-itw-form" onSubmit={handleSchedule}>
                 <div className="rp-itw-row">
@@ -151,14 +148,14 @@ export default function ReviewPanel({ card, onClose }) {
                     value={itw.interviewType}
                     onChange={e => setItw(p => ({ ...p, interviewType: e.target.value }))}
                   >
-                    <option>Visioconférence</option>
-                    <option>Téléphone</option>
-                    <option>Présentiel</option>
+                    <option>{t.videoConference}</option>
+                    <option>{t.phone}</option>
+                    <option>{t.inPerson}</option>
                   </select>
                 </div>
                 <input
                   className="rp-input"
-                  placeholder="Lien de réunion (Meet, Zoom…)"
+                  placeholder={t.meetingLinkPlaceholder}
                   value={itw.interviewLink}
                   onChange={e => setItw(p => ({ ...p, interviewLink: e.target.value }))}
                 />
@@ -166,14 +163,14 @@ export default function ReviewPanel({ card, onClose }) {
                   <ExternalLink size={13} />
                   <input
                     className="rp-input"
-                    placeholder="Lien Calendly (https://calendly.com/…)"
+                    placeholder={t.calendlyPlaceholder}
                     value={itw.calendlyLink}
                     onChange={e => setItw(p => ({ ...p, calendlyLink: e.target.value }))}
                   />
                 </div>
                 <textarea
                   className="rp-textarea"
-                  placeholder="Notes pour le candidat…"
+                  placeholder={t.candidateNotesPlaceholder}
                   rows={2}
                   value={itw.notes}
                   onChange={e => setItw(p => ({ ...p, notes: e.target.value }))}
@@ -181,7 +178,7 @@ export default function ReviewPanel({ card, onClose }) {
                 {itwError && <p className="rp-error">{itwError}</p>}
                 <button className="rp-submit" type="submit" disabled={itwSending}>
                   {itwSending ? <Loader2 size={15} className="rp-spin" /> : <CalendarPlus size={15} />}
-                  Planifier
+                  {t.schedule}
                 </button>
               </form>
             )}
@@ -189,22 +186,22 @@ export default function ReviewPanel({ card, onClose }) {
 
           {/* Add review form */}
           <form className="rp-form" onSubmit={handleSubmit}>
-            <p className="rp-section-label">Ajouter un avis</p>
-            <StarRating value={rating} onChange={setRating} />
+            <p className="rp-section-label">{t.addReview}</p>
+            <StarRating value={rating} onChange={setRating} t={t} />
             <textarea
               className="rp-textarea"
-              placeholder="Notes, observations, points forts…"
+              placeholder={t.reviewNotesPlaceholder}
               value={comments}
               onChange={e => setComments(e.target.value)}
               rows={3}
             />
             <div className="rp-form-row">
               <select className="rp-select" value={status} onChange={e => setStatus(e.target.value)}>
-                {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {t.statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
               <button className="rp-submit" type="submit" disabled={submitting}>
                 {submitting ? <Loader2 size={15} className="rp-spin" /> : <Send size={15} />}
-                Envoyer
+                {t.send}
               </button>
             </div>
             {error && <p className="rp-error">{error}</p>}
@@ -212,10 +209,10 @@ export default function ReviewPanel({ card, onClose }) {
 
           {/* Existing reviews */}
           <div className="rp-reviews">
-            <p className="rp-section-label">Historique ({reviews.length})</p>
+            <p className="rp-section-label">{t.history} ({reviews.length})</p>
             {loading && <div className="rp-loading"><Loader2 size={20} className="rp-spin" /></div>}
             {!loading && reviews.length === 0 && (
-              <p className="rp-empty">Aucun avis pour l'instant.</p>
+              <p className="rp-empty">{t.noReviewsYet}</p>
             )}
             {reviews.map(r => (
               <div key={r.id} className="rp-review-item">
@@ -226,7 +223,7 @@ export default function ReviewPanel({ card, onClose }) {
                     ))}
                   </span>
                   <span className={`rp-badge rp-badge--${r.status?.toLowerCase()}`}>{
-                    STATUS_OPTIONS.find(o => o.value === r.status)?.label ?? r.status
+                    t.statusOptions.find(o => o.value === r.status)?.label ?? r.status
                   }</span>
                   <span className="rp-review-date">{fmtDate(r.createdAt)}</span>
                 </div>

@@ -102,7 +102,7 @@ export const JOBS = [
     salary: { min: 600_000, max: 900_000, currency: 'FCFA' }, remote: true,
     skills: ['React', 'Node.js', 'TypeScript', 'MongoDB'],
     description: 'Rejoignez notre équipe tech pour construire la prochaine génération de produits digitaux africains.',
-    sector: 'Tech', experience: '3-5 ans', education: 'Bac+3/5',
+    sector: 'Informatique & Développement logiciel', experience: '3-5 ans', education: 'Bac+3/5',
     postedDaysAgo: 2, applicants: 34, featured: true, saved: false,
   },
   {
@@ -111,7 +111,7 @@ export const JOBS = [
     salary: { min: 450_000, max: 700_000, currency: 'FCFA' }, remote: false,
     skills: ['Python', 'SQL', 'Power BI', 'Excel'],
     description: 'Analysez les données de millions de clients pour améliorer nos services télécoms.',
-    sector: 'Tech', experience: '2-4 ans', education: 'Bac+4/5',
+    sector: 'Informatique & Développement logiciel', experience: '2-4 ans', education: 'Bac+4/5',
     postedDaysAgo: 5, applicants: 67, featured: true, saved: false,
   },
   {
@@ -120,7 +120,7 @@ export const JOBS = [
     salary: { min: 350_000, max: 550_000, currency: 'FCFA' }, remote: false,
     skills: ['OHADA', 'SAGE', 'Fiscalité', 'Reporting'],
     description: 'Supervisez la comptabilité et les reportings financiers de la filiale.',
-    sector: 'Finance', experience: '5+ ans', education: 'Bac+4/5 Comptabilité',
+    sector: 'Comptabilité & Audit', experience: '5+ ans', education: 'Bac+4/5 Comptabilité',
     postedDaysAgo: 8, applicants: 23, featured: false, saved: false,
   },
   {
@@ -129,7 +129,7 @@ export const JOBS = [
     salary: { min: 250_000, max: 450_000, currency: 'FCFA' }, remote: false,
     skills: ['Négociation', 'CRM', 'B2B', 'Télécom'],
     description: 'Développez et gérez un portefeuille de clients grands comptes.',
-    sector: 'Commercial', experience: '3-5 ans', education: 'Bac+3/4',
+    sector: 'Vente & Marketing', experience: '3-5 ans', education: 'Bac+3/4',
     postedDaysAgo: 3, applicants: 89, featured: false, saved: false,
   },
   {
@@ -138,7 +138,7 @@ export const JOBS = [
     salary: { min: 500_000, max: 800_000, currency: 'FCFA' }, remote: false,
     skills: ['PMBOK', 'Agile', 'ERP SAP', 'IT Infrastructure'],
     description: 'Pilotez les projets de transformation digitale du groupe en Afrique centrale.',
-    sector: 'Tech', experience: '5+ ans', education: 'Bac+5 Ingénieur',
+    sector: 'Informatique & Développement logiciel', experience: '5+ ans', education: 'Bac+5 Ingénieur',
     postedDaysAgo: 1, applicants: 41, featured: true, saved: false,
   },
   {
@@ -147,7 +147,7 @@ export const JOBS = [
     salary: { min: 150_000, max: 280_000, currency: 'FCFA' }, remote: true,
     skills: ['Facebook Ads', 'Instagram', 'Canva', 'Copywriting'],
     description: 'Animez nos communautés en ligne et boostez notre présence digitale.',
-    sector: 'Marketing', experience: '1-3 ans', education: 'Bac+2/3 Communication',
+    sector: 'Publicité & Communication', experience: '1-3 ans', education: 'Bac+2/3 Communication',
     postedDaysAgo: 10, applicants: 156, featured: false, saved: false,
   },
   {
@@ -156,7 +156,7 @@ export const JOBS = [
     salary: { min: 450_000, max: 700_000, currency: 'FCFA' }, remote: false,
     skills: ['IFRS', 'Audit', 'Risk management', 'Excel avancé'],
     description: "Menez des missions d'audit financier et conseil auprès de grandes entreprises.",
-    sector: 'Finance', experience: '2-5 ans', education: 'Bac+5 Finance/Audit',
+    sector: 'Comptabilité & Audit', experience: '2-5 ans', education: 'Bac+5 Finance/Audit',
     postedDaysAgo: 6, applicants: 38, featured: true, saved: false,
   },
   {
@@ -165,7 +165,7 @@ export const JOBS = [
     salary: { min: 250_000, max: 450_000, currency: 'FCFA' }, remote: false,
     skills: ['Recrutement', 'GPEC', 'Formation', 'ATS'],
     description: 'Gérez le cycle complet de recrutement et les plans de développement RH.',
-    sector: 'RH', experience: '2-4 ans', education: 'Bac+4/5 RH',
+    sector: 'Ressources Humaines', experience: '2-4 ans', education: 'Bac+4/5 RH',
     postedDaysAgo: 12, applicants: 72, featured: false, saved: false,
   },
   {
@@ -174,7 +174,7 @@ export const JOBS = [
     salary: { min: 500_000, max: 900_000, currency: 'FCFA' }, remote: true,
     skills: ['Docker', 'Kubernetes', 'AWS', 'CI/CD', 'Linux'],
     description: "Automatisez et fiabilisez notre infrastructure cloud pour une plateforme à l'échelle.",
-    sector: 'Tech', experience: '3-6 ans', education: 'Bac+4/5 Informatique',
+    sector: 'Informatique & Développement logiciel', experience: '3-6 ans', education: 'Bac+4/5 Informatique',
     postedDaysAgo: 4, applicants: 19, featured: false, saved: false,
   },
   {
@@ -183,7 +183,7 @@ export const JOBS = [
     salary: { min: 180_000, max: 320_000, currency: 'FCFA' }, remote: true,
     skills: ['Adobe Illustrator', 'After Effects', 'Figma', 'Branding'],
     description: 'Créez des visuels engageants pour nos campagnes marketing digitales.',
-    sector: 'Design', experience: '1-3 ans', education: 'Bac+2/3 Design',
+    sector: 'Architecture & Design', experience: '1-3 ans', education: 'Bac+2/3 Design',
     postedDaysAgo: 7, applicants: 93, featured: false, saved: false,
   },
   {
@@ -192,7 +192,7 @@ export const JOBS = [
     salary: { min: 350_000, max: 600_000, currency: 'FCFA' }, remote: false,
     skills: ['Modélisation financière', 'Bloomberg', 'Excel', 'IFRS'],
     description: 'Analysez la viabilité financière des projets de financement corporate.',
-    sector: 'Finance', experience: '2-5 ans', education: 'Bac+5 Finance',
+    sector: 'Banque & Services financiers', experience: '2-5 ans', education: 'Bac+5 Finance',
     postedDaysAgo: 9, applicants: 44, featured: false, saved: false,
   },
   {
@@ -201,7 +201,7 @@ export const JOBS = [
     salary: { min: 450_000, max: 800_000, currency: 'FCFA' }, remote: true,
     skills: ['Vue.js', 'Java Spring Boot', 'PostgreSQL', 'REST API'],
     description: 'Développez des fonctionnalités end-to-end sur notre plateforme SaaS B2B.',
-    sector: 'Tech', experience: '2-4 ans', education: 'Bac+3/5 Informatique',
+    sector: 'Informatique & Développement logiciel', experience: '2-4 ans', education: 'Bac+3/5 Informatique',
     postedDaysAgo: 1, applicants: 27, featured: true, saved: false,
   },
   {
@@ -210,7 +210,7 @@ export const JOBS = [
     salary: { min: 500_000, max: 900_000, currency: 'FCFA' }, remote: false,
     skills: ['SAP FI', 'SAP CO', 'ABAP', 'Gestion de projet'],
     description: 'Implémentez et optimisez les modules SAP Finance pour nos clients grands comptes.',
-    sector: 'Conseil', experience: '4-7 ans', education: 'Bac+5 Informatique/Finance',
+    sector: 'Conseil & Management', experience: '4-7 ans', education: 'Bac+5 Informatique/Finance',
     postedDaysAgo: 14, applicants: 12, featured: false, saved: false,
   },
   {
@@ -219,7 +219,7 @@ export const JOBS = [
     salary: { min: 350_000, max: 600_000, currency: 'FCFA' }, remote: false,
     skills: ['SEO', 'SEA', 'CRM', 'Analytics', 'Email marketing'],
     description: 'Définissez et exécutez la stratégie digitale de la marque MTN au Cameroun.',
-    sector: 'Marketing', experience: '3-5 ans', education: 'Bac+4/5 Marketing',
+    sector: 'Publicité & Communication', experience: '3-5 ans', education: 'Bac+4/5 Marketing',
     postedDaysAgo: 11, applicants: 58, featured: false, saved: false,
   },
   {
@@ -228,7 +228,7 @@ export const JOBS = [
     salary: { min: 400_000, max: 700_000, currency: 'FCFA' }, remote: false,
     skills: ['Cisco', 'Firewall', 'VPN', 'MPLS', 'Cybersécurité'],
     description: "Administrez et sécurisez l'infrastructure réseau nationale d'Orange.",
-    sector: 'Tech', experience: '3-5 ans', education: 'Bac+4/5 Réseaux',
+    sector: 'Cybersécurité', experience: '3-5 ans', education: 'Bac+4/5 Réseaux',
     postedDaysAgo: 16, applicants: 30, featured: false, saved: false,
   },
 ]

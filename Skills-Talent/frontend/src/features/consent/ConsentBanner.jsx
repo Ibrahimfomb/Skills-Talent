@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/AuthStore'
 import { updateConsent } from '../../api/GdprApi'
+import { useTranslation } from '../../i18n/translations'
 
 const CONSENT_TYPES = ['ANALYTICS', 'MARKETING', 'AI_PROCESSING']
 
@@ -12,6 +13,7 @@ export default function ConsentBanner() {
   const [loading, setLoading] = useState(false)
   const { user } = useAuthStore()
   const navigate = useNavigate()
+  const t = useTranslation().consent
 
   if (!visible || !user) return null
 
@@ -43,35 +45,31 @@ export default function ConsentBanner() {
 
   return (
     <div className="cb-banner">
-      <p className="cb-text">
-        SkillSet utilise des cookies et traite vos données pour améliorer votre
-        expérience, personnaliser le matching et faire fonctionner STELLA.
-        Vous pouvez accepter, refuser ou personnaliser vos choix à tout moment.
-      </p>
+      <p className="cb-text">{t.text}</p>
       <div className="cb-actions">
         <button className="cb-btn cb-btn--secondary" onClick={configure} disabled={loading}>
-          Paramétrer
+          {t.configure}
         </button>
         <button className="cb-btn cb-btn--outline" onClick={rejectAll} disabled={loading}>
-          Refuser tout
+          {t.rejectAll}
         </button>
         <button className="cb-btn cb-btn--primary" onClick={acceptAll} disabled={loading}>
-          {loading ? 'Enregistrement…' : 'Tout accepter'}
+          {loading ? t.saving : t.acceptAll}
         </button>
       </div>
 
       <style>{`
         .cb-banner {
           position: fixed; bottom: 0; left: 0; right: 0;
-          background: var(--color-surface, #fff);
-          border-top: 1px solid var(--color-border, #e5e7eb);
+          background: var(--surface-card);
+          border-top: 1px solid var(--surface-border);
           padding: 16px 24px; z-index: 999;
           display: flex; align-items: center; justify-content: space-between;
           gap: 16px; flex-wrap: wrap;
           box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
         }
         .cb-text {
-          font-size: 0.85rem; color: var(--color-text-muted, #555);
+          font-size: 0.85rem; color: var(--text-secondary);
           line-height: 1.5; margin: 0; flex: 1; min-width: 260px;
         }
         .cb-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -81,15 +79,15 @@ export default function ConsentBanner() {
         }
         .cb-btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .cb-btn--primary {
-          background: var(--color-primary, #2563eb); color: #fff;
+          background: #c42033; color: #fff;
         }
         .cb-btn--outline {
-          background: none; border: 1.5px solid #ddd;
-          color: var(--color-text, #333);
+          background: none; border: 1.5px solid var(--surface-border);
+          color: var(--text-primary);
         }
         .cb-btn--secondary {
-          background: var(--color-surface-alt, #f3f4f6);
-          color: var(--color-text-muted, #555);
+          background: var(--surface-border-soft);
+          color: var(--text-secondary);
         }
       `}</style>
     </div>

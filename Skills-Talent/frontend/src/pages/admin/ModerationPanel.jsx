@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CheckCircle, XCircle, Clock, Search, ChevronDown, Briefcase } from 'lucide-react'
 import { getAdminJobs, changeJobStatus } from '../../api/AdminApi'
+import { useTranslation } from '../../i18n/translations'
 import './ModerationPanel.css'
 
-const STATUS_LABELS = { OPEN: 'Ouverte', CLOSED: 'Fermée', DRAFT: 'Brouillon' }
 const STATUS_OPTIONS = ['', 'OPEN', 'CLOSED', 'DRAFT']
 
 export default function ModerationPanel() {
+  const t = useTranslation().admin.moderation
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -20,7 +21,7 @@ export default function ModerationPanel() {
     setError('')
     getAdminJobs(status)
       .then(setJobs)
-      .catch(() => setError('Impossible de charger les offres.'))
+      .catch(() => setError(t.loadError))
       .finally(() => setLoading(false))
   }
 
@@ -32,7 +33,7 @@ export default function ModerationPanel() {
       const updated = await changeJobStatus(jobId, newStatus)
       setJobs(js => js.map(j => j.id === jobId ? updated : j))
     } catch {
-      setError('Erreur lors du changement de statut.')
+      setError(t.statusChangeError)
     } finally {
       setChanging(c => ({ ...c, [jobId]: false }))
     }
@@ -49,8 +50,8 @@ export default function ModerationPanel() {
   return (
     <div className="mp-shell">
       <div className="mp-header">
-        <h1 className="mp-title">Modération des offres</h1>
-        <p className="mp-sub">Gérez la visibilité des offres d&apos;emploi publiées sur la plateforme.</p>
+        <h1 className="mp-title">{t.pageTitle}</h1>
+        <p className="mp-sub">{t.pageSub}</p>
       </div>
 
       <div className="mp-kpis">
@@ -58,28 +59,28 @@ export default function ModerationPanel() {
           <CheckCircle size={20} />
           <div>
             <p className="mp-kpi-val">{counts.OPEN}</p>
-            <p className="mp-kpi-label">Ouvertes</p>
+            <p className="mp-kpi-label">{t.open}</p>
           </div>
         </div>
         <div className="mp-kpi mp-kpi--closed">
           <XCircle size={20} />
           <div>
             <p className="mp-kpi-val">{counts.CLOSED}</p>
-            <p className="mp-kpi-label">Fermées</p>
+            <p className="mp-kpi-label">{t.closed}</p>
           </div>
         </div>
         <div className="mp-kpi mp-kpi--draft">
           <Clock size={20} />
           <div>
             <p className="mp-kpi-val">{counts.DRAFT}</p>
-            <p className="mp-kpi-label">Brouillons</p>
+            <p className="mp-kpi-label">{t.drafts}</p>
           </div>
         </div>
         <div className="mp-kpi mp-kpi--total">
           <Briefcase size={20} />
           <div>
             <p className="mp-kpi-val">{jobs.length}</p>
-            <p className="mp-kpi-label">Total</p>
+            <p className="mp-kpi-label">{t.total}</p>
           </div>
         </div>
       </div>
@@ -89,7 +90,7 @@ export default function ModerationPanel() {
           <Search size={15} className="mp-search-icon" />
           <input
             className="mp-search"
-            placeholder="Rechercher par titre ou lieu…"
+            placeholder={t.searchPlaceholder}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -101,7 +102,7 @@ export default function ModerationPanel() {
             onChange={e => setFilterStatus(e.target.value)}
           >
             {STATUS_OPTIONS.map(s => (
-              <option key={s} value={s}>{s ? STATUS_LABELS[s] : 'Tous les statuts'}</option>
+              <option key={s} value={s}>{s ? t.statusLabels[s] : t.allStatuses}</option>
             ))}
           </select>
           <ChevronDown size={14} className="mp-filter-arrow" />
@@ -111,25 +112,25 @@ export default function ModerationPanel() {
       {error && <p className="mp-error">{error}</p>}
 
       {loading ? (
-        <div className="mp-loading">Chargement…</div>
+        <div className="mp-loading">{t.loading}</div>
       ) : visible.length === 0 ? (
         <div className="mp-empty">
-          <Briefcase size={40} color="#d4d2d0" />
-          <p>Aucune offre trouvée.</p>
+          <Briefcase size={40} color="var(--text-muted)" />
+          <p>{t.emptyResults}</p>
         </div>
       ) : (
         <div className="mp-table-wrap">
           <table className="mp-table">
             <thead>
               <tr>
-                <th>Titre</th>
-                <th>Lieu</th>
-                <th>Type</th>
-                <th>Candidatures</th>
-                <th>Publiée le</th>
-                <th>Expire le</th>
-                <th>Statut</th>
-                <th>Actions</th>
+                <th>{t.table.title}</th>
+                <th>{t.table.location}</th>
+                <th>{t.table.type}</th>
+                <th>{t.table.applications}</th>
+                <th>{t.table.postedOn}</th>
+                <th>{t.table.expiresOn}</th>
+                <th>{t.table.status}</th>
+                <th>{t.table.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -147,7 +148,7 @@ export default function ModerationPanel() {
                   <td>{job.expiresAt || '—'}</td>
                   <td>
                     <span className={`mp-badge mp-badge--${job.status.toLowerCase()}`}>
-                      {STATUS_LABELS[job.status] ?? job.status}
+                      {t.statusLabels[job.status] ?? job.status}
                     </span>
                   </td>
                   <td>
@@ -158,7 +159,7 @@ export default function ModerationPanel() {
                           disabled={changing[job.id]}
                           onClick={() => handleStatus(job.id, 'OPEN')}
                         >
-                          Ouvrir
+                          {t.openAction}
                         </button>
                       )}
                       {job.status !== 'CLOSED' && (
@@ -167,7 +168,7 @@ export default function ModerationPanel() {
                           disabled={changing[job.id]}
                           onClick={() => handleStatus(job.id, 'CLOSED')}
                         >
-                          Fermer
+                          {t.closeAction}
                         </button>
                       )}
                       {job.status !== 'DRAFT' && (
@@ -176,7 +177,7 @@ export default function ModerationPanel() {
                           disabled={changing[job.id]}
                           onClick={() => handleStatus(job.id, 'DRAFT')}
                         >
-                          Brouillon
+                          {t.draftAction}
                         </button>
                       )}
                     </div>

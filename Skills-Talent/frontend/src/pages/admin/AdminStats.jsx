@@ -1,24 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate, NavLink, useLocation } from 'react-router-dom'
+import { useNavigate, NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Briefcase, FileText, ShieldCheck, BarChart2,
   LogOut, Bell, TrendingUp, CheckCircle, XCircle, Clock,
   CircleUser, Search, AlertTriangle, Activity, ChevronRight,
-  Loader2,
+  Loader2, Sun, Moon,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/AuthStore'
+import { usePreferencesStore } from '../../store/PreferencesStore'
 import { getAdminStats, getAdminUsers, toggleUserStatus } from '../../api/AdminApi'
+import { useTranslation } from '../../i18n/translations'
 import './AdminStats.css'
-
-const ROLE_META = {
-  CANDIDATE: { label: 'Candidat',  cls: 'role--candidate' },
-  EMPLOYER:  { label: 'Employeur', cls: 'role--employer'  },
-  ADMIN:     { label: 'Admin',     cls: 'role--admin'     },
-}
 
 const DOT_TYPE = { user: 'dot--user', job: 'dot--job', check: 'dot--check', alert: 'dot--alert', file: 'dot--file' }
 
-function Sidebar({ onLogout }) {
+function Sidebar({ onLogout, t }) {
+  const { language, setLanguage, theme, toggleTheme } = usePreferencesStore()
   return (
     <aside className="ad-sidebar">
       <div className="ad-sidebar-logo">
@@ -26,48 +23,43 @@ function Sidebar({ onLogout }) {
         <span className="ad-logo-text">SkillSet</span>
         <span className="ad-admin-badge">Admin</span>
       </div>
+
+      <div className="ad-sidebar-prefs">
+        <div className="ad-lang-switch" role="group" aria-label="Langue / Language">
+          <button type="button" className={`ad-lang-btn${language === 'fr' ? ' ad-lang-btn--active' : ''}`} onClick={() => setLanguage('fr')}>FR</button>
+          <button type="button" className={`ad-lang-btn${language === 'en' ? ' ad-lang-btn--active' : ''}`} onClick={() => setLanguage('en')}>EN</button>
+        </div>
+        <button type="button" className="ad-theme-btn" onClick={toggleTheme} aria-label="Toggle theme">
+          {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+        </button>
+      </div>
+
       <nav className="ad-nav">
         <NavLink to="/dashboard/admin" end className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <LayoutDashboard size={18} /> Vue d&apos;ensemble
+          <LayoutDashboard size={18} /> {t.nav.overview}
         </NavLink>
         <NavLink to="/admin/users" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <Users size={18} /> Utilisateurs
-        </NavLink>
-        <NavLink to="/admin/jobs" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <Briefcase size={18} /> Offres d&apos;emploi
-        </NavLink>
-        <NavLink to="/admin/applications" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <FileText size={18} /> Candidatures
+          <Users size={18} /> {t.nav.users}
         </NavLink>
         <NavLink to="/admin/moderation" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <ShieldCheck size={18} /> Modération
+          <ShieldCheck size={18} /> {t.nav.moderation}
         </NavLink>
         <NavLink to="/admin/analytics" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <BarChart2 size={18} /> Analytics
+          <BarChart2 size={18} /> {t.nav.analytics}
         </NavLink>
       </nav>
       <button className="ad-logout" onClick={onLogout}>
-        <LogOut size={18} /> Déconnexion
+        <LogOut size={18} /> {t.logout}
       </button>
     </aside>
   )
 }
 
-function pathToTab(pathname) {
-  if (pathname === '/admin/jobs')         return 'jobs'
-  if (pathname === '/admin/applications') return 'applications'
-  if (pathname === '/admin/moderation')   return 'moderation'
-  return 'users'
-}
-
 export default function AdminStats() {
   const navigate = useNavigate()
-  const { pathname } = useLocation()
   const { user, logout } = useAuthStore()
+  const t = useTranslation().admin
   const [search, setSearch]             = useState('')
-  const [activeTab, setActiveTab]       = useState(() => pathToTab(pathname))
-
-  useEffect(() => { setActiveTab(pathToTab(pathname)) }, [pathname])
   const [stats, setStats]               = useState(null)
   const [users, setUsers]               = useState([])
   const [loading, setLoading]           = useState(true)
@@ -75,14 +67,14 @@ export default function AdminStats() {
   const [error, setError]               = useState('')
 
   const handleLogout = () => { logout(); navigate('/login') }
-  const adminName = user?.firstName || 'Administrateur'
+  const adminName = user?.firstName || t.defaultAdminName
 
   useEffect(() => {
     getAdminStats()
       .then(data => { setStats(data); setUsers(data.recentUsers || []) })
-      .catch(() => setError('Impossible de charger les statistiques.'))
+      .catch(() => setError(t.loadStatsError))
       .finally(() => setLoading(false))
-  }, [])
+  }, [t.loadStatsError])
 
   const handleSearch = useCallback(async (q) => {
     setUsersLoading(true)
@@ -90,11 +82,11 @@ export default function AdminStats() {
       const data = await getAdminUsers(q)
       setUsers(data)
     } catch {
-      setError('Erreur lors de la recherche.')
+      setError(t.searchError)
     } finally {
       setUsersLoading(false)
     }
-  }, [])
+  }, [t.searchError])
 
   useEffect(() => {
     const timer = setTimeout(() => handleSearch(search), 350)
@@ -111,13 +103,13 @@ export default function AdminStats() {
         setStats(prev => ({ ...prev, activeUsers: prev.activeUsers + (users.find(u => u.id === userId)?.status === 'ACTIVE' ? -1 : 1) }))
       }
     } catch {
-      setError('Impossible de modifier le statut de cet utilisateur.')
+      setError(t.toggleStatusError)
     }
   }
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#FFFBF0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--surface-page-alt)' }}>
         <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: '#D97706' }} />
       </div>
     )
@@ -135,21 +127,27 @@ export default function AdminStats() {
   const employerPct  = totalUsers > 0 ? Math.round((totalEmployers  / totalUsers) * 100) : 0
   const adminPct     = totalUsers > 0 ? Math.round(((totalUsers - totalCandidates - totalEmployers) / totalUsers) * 100) : 0
 
+  const ROLE_META = {
+    CANDIDATE: { label: t.roles.CANDIDATE, cls: 'role--candidate' },
+    EMPLOYER:  { label: t.roles.EMPLOYER,  cls: 'role--employer'  },
+    ADMIN:     { label: t.roles.ADMIN,     cls: 'role--admin'     },
+  }
+
   return (
     <div className="ad-shell">
-      <Sidebar onLogout={handleLogout} />
+      <Sidebar onLogout={handleLogout} t={t} />
 
       <main className="ad-main">
         {/* Header */}
         <div className="ad-header">
           <div>
             <p className="ad-greeting">
-              Panneau d&apos;administration — <span className="ad-greeting-name">{adminName}</span>
+              {t.panelPrefix} <span className="ad-greeting-name">{adminName}</span>
             </p>
-            <p className="ad-greeting-sub">Gérez la plateforme SkillSet</p>
+            <p className="ad-greeting-sub">{t.manageSub}</p>
           </div>
           <div className="ad-header-right">
-            <button className="ad-icon-btn" aria-label="Notifications"><Bell size={18} /></button>
+            <button className="ad-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}><Bell size={18} /></button>
             <CircleUser size={32} className="ad-avatar" />
           </div>
         </div>
@@ -167,31 +165,31 @@ export default function AdminStats() {
             <div className="ad-stat-icon ad-stat-icon--amber"><Users size={20} /></div>
             <div>
               <div className="ad-stat-value">{totalUsers}</div>
-              <div className="ad-stat-label">Utilisateurs</div>
+              <div className="ad-stat-label">{t.stats.users}</div>
             </div>
-            <div className="ad-stat-trend up"><TrendingUp size={12} /> {stats?.activeUsers ?? 0} actifs</div>
+            <div className="ad-stat-trend up"><TrendingUp size={12} /> {stats?.activeUsers ?? 0} {t.stats.active}</div>
           </div>
           <div className="ad-stat-card">
             <div className="ad-stat-icon ad-stat-icon--indigo"><Briefcase size={20} /></div>
             <div>
               <div className="ad-stat-value">{totalJobs}</div>
-              <div className="ad-stat-label">Offres</div>
+              <div className="ad-stat-label">{t.stats.jobs}</div>
             </div>
-            <div className="ad-stat-trend up"><TrendingUp size={12} /> {stats?.openJobs ?? 0} ouvertes</div>
+            <div className="ad-stat-trend up"><TrendingUp size={12} /> {stats?.openJobs ?? 0} {t.stats.open}</div>
           </div>
           <div className="ad-stat-card">
             <div className="ad-stat-icon ad-stat-icon--cherry"><FileText size={20} /></div>
             <div>
               <div className="ad-stat-value">{totalApps}</div>
-              <div className="ad-stat-label">Candidatures</div>
+              <div className="ad-stat-label">{t.stats.applications}</div>
             </div>
-            <div className="ad-stat-trend up"><TrendingUp size={12} /> {stats?.pendingApplications ?? 0} en attente</div>
+            <div className="ad-stat-trend up"><TrendingUp size={12} /> {stats?.pendingApplications ?? 0} {t.stats.pending}</div>
           </div>
           <div className="ad-stat-card">
             <div className="ad-stat-icon ad-stat-icon--green"><CheckCircle size={20} /></div>
             <div>
               <div className="ad-stat-value">{acceptedApps}</div>
-              <div className="ad-stat-label">Finalisées</div>
+              <div className="ad-stat-label">{t.stats.completed}</div>
             </div>
           </div>
         </div>
@@ -201,119 +199,85 @@ export default function AdminStats() {
           {/* Users table */}
           <div className="ad-content">
             <div className="ad-tabs">
-              <button onClick={() => setActiveTab('users')} className={`ad-tab${activeTab === 'users' ? ' ad-tab--active' : ''}`}>
-                <Users size={15} /> Users
-              </button>
-              <button onClick={() => setActiveTab('jobs')} className={`ad-tab${activeTab === 'jobs' ? ' ad-tab--active' : ''}`}>
-                <Briefcase size={15} /> Offres
-              </button>
-              <button onClick={() => setActiveTab('applications')} className={`ad-tab${activeTab === 'applications' ? ' ad-tab--active' : ''}`}>
-                <FileText size={15} /> Candidatures
-              </button>
-              <button onClick={() => setActiveTab('moderation')} className={`ad-tab${activeTab === 'moderation' ? ' ad-tab--active' : ''}`}>
-                <ShieldCheck size={15} /> Modération
-              </button>
+              <span className="ad-tab ad-tab--active">
+                <Users size={15} /> {t.tabs.users}
+              </span>
+              <NavLink to="/admin/moderation" className="ad-tab">
+                <ShieldCheck size={15} /> {t.tabs.moderation}
+              </NavLink>
             </div>
 
-            {activeTab === 'users' && (
-              <>
-                <div className="ad-search-bar">
-                  <Search size={16} className="ad-search-icon" />
-                  <input
-                    className="ad-search-input"
-                    placeholder="Rechercher un utilisateur…"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                  />
-                  {usersLoading && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite', color: '#D97706', flexShrink: 0 }} />}
-                </div>
-                <table className="ad-table">
-                  <thead>
-                    <tr>
-                      <th>Utilisateur</th>
-                      <th>Rôle</th>
-                      <th>Statut</th>
-                      <th>Inscrit le</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map(u => {
-                      const roleMeta = ROLE_META[u.role] || ROLE_META.CANDIDATE
-                      return (
-                        <tr key={u.id}>
-                          <td>
-                            <div className="ad-user-cell">
-                              <CircleUser size={22} className="ad-user-avatar" />
-                              <div>
-                                <div className="ad-user-name">{u.name}</div>
-                                <div className="ad-user-email">{u.email}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <span className={`ad-role-badge ${roleMeta.cls}`}>{roleMeta.label}</span>
-                          </td>
-                          <td>
-                            <span className={`ad-status-badge ${u.status === 'ACTIVE' ? 'st--active' : 'st--inactive'}`}>
-                              {u.status === 'ACTIVE' ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                              {u.status === 'ACTIVE' ? 'Actif' : 'Inactif'}
-                            </span>
-                          </td>
-                          <td><span className="ad-date">{u.joinedAt}</span></td>
-                          <td>
-                            <div className="ad-actions">
-                              <button className="ad-action-btn">Voir</button>
-                              {u.status === 'ACTIVE'
-                                ? <button onClick={() => handleToggle(u.id)} className="ad-action-btn ad-action-btn--danger">Désactiver</button>
-                                : <button onClick={() => handleToggle(u.id)} className="ad-action-btn ad-action-btn--success">Activer</button>
-                              }
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                    {users.length === 0 && !usersLoading && (
-                      <tr>
-                        <td colSpan={5}>
-                          <div className="ad-empty">
-                            <Users size={36} className="ad-empty-icon" />
-                            <p>Aucun utilisateur trouvé</p>
+            <div className="ad-search-bar">
+              <Search size={16} className="ad-search-icon" />
+              <input
+                className="ad-search-input"
+                placeholder={t.searchUserPlaceholder}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              {usersLoading && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite', color: '#D97706', flexShrink: 0 }} />}
+            </div>
+            <table className="ad-table">
+              <thead>
+                <tr>
+                  <th>{t.table.user}</th>
+                  <th>{t.table.role}</th>
+                  <th>{t.table.status}</th>
+                  <th>{t.table.joined}</th>
+                  <th>{t.table.actions}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => {
+                  const roleMeta = ROLE_META[u.role] || ROLE_META.CANDIDATE
+                  return (
+                    <tr key={u.id}>
+                      <td>
+                        <div className="ad-user-cell">
+                          <CircleUser size={22} className="ad-user-avatar" />
+                          <div>
+                            <div className="ad-user-name">{u.name}</div>
+                            <div className="ad-user-email">{u.email}</div>
                           </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-                <button className="ad-see-all">
-                  Gérer tous les utilisateurs <ChevronRight size={16} />
-                </button>
-              </>
-            )}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`ad-role-badge ${roleMeta.cls}`}>{roleMeta.label}</span>
+                      </td>
+                      <td>
+                        <span className={`ad-status-badge ${u.status === 'ACTIVE' ? 'st--active' : 'st--inactive'}`}>
+                          {u.status === 'ACTIVE' ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                          {u.status === 'ACTIVE' ? t.active : t.inactive}
+                        </span>
+                      </td>
+                      <td><span className="ad-date">{u.joinedAt}</span></td>
+                      <td>
+                        <div className="ad-actions">
+                          {u.status === 'ACTIVE'
+                            ? <button onClick={() => handleToggle(u.id)} className="ad-action-btn ad-action-btn--danger">{t.deactivate}</button>
+                            : <button onClick={() => handleToggle(u.id)} className="ad-action-btn ad-action-btn--success">{t.activate}</button>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {users.length === 0 && !usersLoading && (
+                  <tr>
+                    <td colSpan={5}>
+                      <div className="ad-empty">
+                        <Users size={36} className="ad-empty-icon" />
+                        <p>{t.noUsersFound}</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            <NavLink to="/admin/users" className="ad-see-all">
+              {t.manageAllUsers} <ChevronRight size={16} />
+            </NavLink>
 
-            {activeTab === 'jobs' && (
-              <div className="ad-empty">
-                <Briefcase size={40} className="ad-empty-icon" />
-                <p>Gestion des offres d&apos;emploi</p>
-                <span>Fonctionnalité en cours d&apos;implémentation</span>
-              </div>
-            )}
-
-            {activeTab === 'applications' && (
-              <div className="ad-empty">
-                <FileText size={40} className="ad-empty-icon" />
-                <p>Gestion des candidatures</p>
-                <span>Fonctionnalité en cours d&apos;implémentation</span>
-              </div>
-            )}
-
-            {activeTab === 'moderation' && (
-              <div className="ad-empty">
-                <ShieldCheck size={40} className="ad-empty-icon" />
-                <p>Panneau de modération</p>
-                <span>Fonctionnalité en cours d&apos;implémentation</span>
-              </div>
-            )}
           </div>
 
           {/* Activity sidebar */}
@@ -321,11 +285,11 @@ export default function AdminStats() {
             {/* Activity feed */}
             <div className="ad-activity">
               <div className="ad-section-title">
-                <Activity size={16} /> Activité récente
+                <Activity size={16} /> {t.recentActivity}
               </div>
               <div className="ad-feed">
                 {activity.length === 0
-                  ? <span style={{ fontSize: 13, color: '#bbb' }}>Aucune activité récente</span>
+                  ? <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t.noRecentActivity}</span>
                   : activity.map((a, i) => (
                     <div key={a.id || i} className="ad-feed-item">
                       <div className={`ad-feed-dot ${DOT_TYPE[a.type] ?? 'dot--check'}`} />
@@ -341,24 +305,24 @@ export default function AdminStats() {
 
             {/* User distribution bars */}
             <div className="ad-activity">
-              <div className="ad-section-title"><TrendingUp size={16} /> Répartition</div>
+              <div className="ad-section-title"><TrendingUp size={16} /> {t.distribution}</div>
               <div className="ad-quick-bar">
                 <div className="ad-bar-item">
-                  <span className="ad-bar-label">Candidats</span>
+                  <span className="ad-bar-label">{t.candidates}</span>
                   <div className="ad-bar-track">
                     <div className="ad-bar-fill ad-bar-fill--cherry" style={{ width: `${candidatePct}%` }} />
                   </div>
                   <span className="ad-bar-val">{totalCandidates}</span>
                 </div>
                 <div className="ad-bar-item">
-                  <span className="ad-bar-label">Employeurs</span>
+                  <span className="ad-bar-label">{t.employers}</span>
                   <div className="ad-bar-track">
                     <div className="ad-bar-fill ad-bar-fill--indigo" style={{ width: `${employerPct}%` }} />
                   </div>
                   <span className="ad-bar-val">{totalEmployers}</span>
                 </div>
                 <div className="ad-bar-item">
-                  <span className="ad-bar-label">Admins</span>
+                  <span className="ad-bar-label">{t.admins}</span>
                   <div className="ad-bar-track">
                     <div className="ad-bar-fill ad-bar-fill--amber" style={{ width: `${adminPct}%` }} />
                   </div>
@@ -370,7 +334,7 @@ export default function AdminStats() {
             {/* Alert */}
             <div className="ad-alert">
               <AlertTriangle size={16} style={{ flexShrink: 0 }} />
-              {stats?.pendingApplications ?? 0} candidature(s) en attente de traitement
+              {stats?.pendingApplications ?? 0} {t.pendingApplicationsAlert}
             </div>
           </div>
         </div>

@@ -1,20 +1,30 @@
 package com.skillset.infrastructure.util;
 
+import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Component
 public class EmailUtil {
 
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)*\\.[a-zA-Z]{2,}$");
+
     private final JavaMailSender mailSender;
 
     public EmailUtil(Optional<JavaMailSender> mailSender) {
         this.mailSender = mailSender.orElse(null);
+    }
+
+    public boolean isValidEmail(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email).matches();
     }
 
     public void sendNotification(String to, String subject, String body) {
@@ -147,6 +157,42 @@ public class EmailUtil {
             "L'équipe SkillSet"
         );
         mailSender.send(message);
+    }
+
+    public void sendLoginNotification(String to, String firstName) {
+        if (mailSender == null || !isValidEmail(to)) {
+            log.warn("Email non configuré ou adresse invalide — sendLoginNotification ignoré pour {}", to);
+            return;
+        }
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
+            helper.setTo(to);
+            helper.setSubject("Bienvenue sur SkillSet !");
+            helper.setText(buildLoginEmailHtml(firstName), true);
+            mailSender.send(mimeMessage);
+            log.info("Email de bienvenue/connexion envoyé à {}", to);
+        } catch (Exception e) {
+            log.error("Erreur envoi email de connexion à {} : {}", to, e.getMessage());
+        }
+    }
+
+    private String buildLoginEmailHtml(String firstName) {
+        return "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#ffffff;\">"
+             + "<table cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"border-collapse:collapse;margin-bottom:28px;\"><tr>"
+             + "<td style=\"width:36px;height:36px;background-color:#C42033;color:#ffffff;font-weight:700;font-size:18px;"
+             + "border-radius:8px;text-align:center;vertical-align:middle;font-family:Arial,Helvetica,sans-serif;\">S</td>"
+             + "<td style=\"padding-left:10px;font-size:22px;font-weight:700;color:#1a1a1a;font-family:Arial,Helvetica,sans-serif;\">SkillSet</td>"
+             + "</tr></table>"
+             + "<h2 style=\"color:#1a1a1a;margin:0 0 12px;\">Bienvenue sur SkillSet, " + firstName + " !</h2>"
+             + "<p style=\"color:#444444;line-height:1.6;\">SkillSet est la plateforme de recrutement qu'il vous faut : "
+             + "elle connecte candidats et entreprises grâce à un système de matching intelligent.</p>"
+             + "<p style=\"color:#444444;line-height:1.6;\">Merci de votre confiance et bienvenue parmi nous. "
+             + "Nous vous confirmons qu'une connexion vient d'avoir lieu sur votre compte.</p>"
+             + "<p style=\"color:#888888;font-size:13px;line-height:1.6;margin-top:24px;\">Si vous n'êtes pas à l'origine de "
+             + "cette connexion, changez immédiatement votre mot de passe et activez la double authentification depuis vos réglages.</p>"
+             + "<p style=\"color:#444444;margin-top:24px;\">Cordialement,<br/>L'équipe SkillSet</p>"
+             + "</div>";
     }
 
     public void sendAddedToTalentPoolEmail(String to, String firstName, String poolName, String companyName) {

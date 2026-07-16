@@ -5,15 +5,19 @@ import {
   LineChart, Line,
 } from 'recharts'
 import {
-  LayoutDashboard, Users, Briefcase, FileText, ShieldCheck, BarChart2,
+  LayoutDashboard, Users, ShieldCheck, BarChart2,
   LogOut, Bell, Clock, TrendingUp, CircleUser, Loader2, AlertTriangle, Download,
+  Sun, Moon,
 } from 'lucide-react'
 import { useAuthStore }                      from '../../store/AuthStore'
+import { usePreferencesStore }               from '../../store/PreferencesStore'
 import { getAdminAnalytics, exportApplicationsCsv } from '../../api/AdminApi'
+import { useTranslation } from '../../i18n/translations'
 import './AdminStats.css'
 import './AdminAnalytics.css'
 
-function Sidebar({ onLogout }) {
+function Sidebar({ onLogout, t }) {
+  const { language, setLanguage, theme, toggleTheme } = usePreferencesStore()
   return (
     <aside className="ad-sidebar">
       <div className="ad-sidebar-logo">
@@ -21,40 +25,36 @@ function Sidebar({ onLogout }) {
         <span className="ad-logo-text">SkillSet</span>
         <span className="ad-admin-badge">Admin</span>
       </div>
+
+      <div className="ad-sidebar-prefs">
+        <div className="ad-lang-switch" role="group" aria-label="Langue / Language">
+          <button type="button" className={`ad-lang-btn${language === 'fr' ? ' ad-lang-btn--active' : ''}`} onClick={() => setLanguage('fr')}>FR</button>
+          <button type="button" className={`ad-lang-btn${language === 'en' ? ' ad-lang-btn--active' : ''}`} onClick={() => setLanguage('en')}>EN</button>
+        </div>
+        <button type="button" className="ad-theme-btn" onClick={toggleTheme} aria-label="Toggle theme">
+          {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+        </button>
+      </div>
+
       <nav className="ad-nav">
         <NavLink to="/dashboard/admin" end className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <LayoutDashboard size={18} /> Vue d&apos;ensemble
+          <LayoutDashboard size={18} /> {t.nav.overview}
         </NavLink>
         <NavLink to="/admin/users" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <Users size={18} /> Utilisateurs
-        </NavLink>
-        <NavLink to="/admin/jobs" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <Briefcase size={18} /> Offres d&apos;emploi
-        </NavLink>
-        <NavLink to="/admin/applications" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <FileText size={18} /> Candidatures
+          <Users size={18} /> {t.nav.users}
         </NavLink>
         <NavLink to="/admin/moderation" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <ShieldCheck size={18} /> Modération
+          <ShieldCheck size={18} /> {t.nav.moderation}
         </NavLink>
         <NavLink to="/admin/analytics" className={({ isActive }) => `ad-nav-item${isActive ? ' ad-nav-item--active' : ''}`}>
-          <BarChart2 size={18} /> Analytics
+          <BarChart2 size={18} /> {t.nav.analytics}
         </NavLink>
       </nav>
       <button className="ad-logout" onClick={onLogout}>
-        <LogOut size={18} /> Déconnexion
+        <LogOut size={18} /> {t.logout}
       </button>
     </aside>
   )
-}
-
-const FUNNEL_LABELS = {
-  SUBMITTED: 'Soumis',
-  SCREENING: 'Screening',
-  INTERVIEW: 'Entretien',
-  OFFER:     'Offre',
-  APPROVED:  'Accepté',
-  REJECTED:  'Refusé',
 }
 
 const FUNNEL_COLORS = {
@@ -66,22 +66,11 @@ const FUNNEL_COLORS = {
   REJECTED:  '#c42033',
 }
 
-function fmtHours(h) {
-  if (h == null) return '—'
-  if (h < 24) return `${Math.round(h)} h`
-  return `${(h / 24).toFixed(1)} j`
-}
-
-const RATE_LABELS = {
-  SUBMITTED_TO_SCREENING: 'Soumis → Screening',
-  SCREENING_TO_INTERVIEW: 'Screening → Entretien',
-  INTERVIEW_TO_OFFER:     'Entretien → Offre',
-  OFFER_TO_APPROVED:      'Offre → Accepté',
-}
-
 export default function AdminAnalytics() {
   const navigate   = useNavigate()
   const { user, logout } = useAuthStore()
+  const t = useTranslation().admin
+  const ta = t.analytics
   const [data,       setData]       = useState(null)
   const [loading,    setLoading]    = useState(true)
   const [error,      setError]      = useState('')
@@ -89,12 +78,18 @@ export default function AdminAnalytics() {
 
   const handleLogout = () => { logout(); navigate('/login') }
 
+  const fmtHours = (h) => {
+    if (h == null) return '—'
+    if (h < 24) return `${Math.round(h)} ${ta.hUnit}`
+    return `${(h / 24).toFixed(1)} ${ta.dUnit}`
+  }
+
   useEffect(() => {
     getAdminAnalytics()
       .then(setData)
-      .catch(() => setError('Impossible de charger les analytics.'))
+      .catch(() => setError(ta.loadError))
       .finally(() => setLoading(false))
-  }, [])
+  }, [ta.loadError])
 
   const handleExportCsv = async () => {
     setExporting(true)
@@ -107,7 +102,7 @@ export default function AdminAnalytics() {
       a.click()
       URL.revokeObjectURL(url)
     } catch {
-      setError('Erreur lors de l\'export CSV.')
+      setError(ta.exportError)
     } finally {
       setExporting(false)
     }
@@ -115,7 +110,7 @@ export default function AdminAnalytics() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#FFFBF0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--surface-page-alt)' }}>
         <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: '#D97706' }} />
       </div>
     )
@@ -123,7 +118,7 @@ export default function AdminAnalytics() {
 
   const funnelData = data?.conversionFunnel
     ? Object.entries(data.conversionFunnel).map(([key, value]) => ({
-        name:  FUNNEL_LABELS[key] ?? key,
+        name:  ta.funnelLabels[key] ?? key,
         key,
         count: value,
         fill:  FUNNEL_COLORS[key] ?? '#888',
@@ -137,27 +132,27 @@ export default function AdminAnalytics() {
 
   return (
     <div className="ad-shell">
-      <Sidebar onLogout={handleLogout} />
+      <Sidebar onLogout={handleLogout} t={t} />
 
       <main className="ad-main">
         <div className="ad-header">
           <div>
-            <p className="ad-greeting">Analytics recrutement — <span className="ad-greeting-name">{user?.firstName || 'Admin'}</span></p>
-            <p className="ad-greeting-sub">Métriques en temps réel de votre pipeline</p>
+            <p className="ad-greeting">{ta.pagePrefix} <span className="ad-greeting-name">{user?.firstName || 'Admin'}</span></p>
+            <p className="ad-greeting-sub">{ta.pageSub}</p>
           </div>
           <div className="ad-header-right">
             <button
               className="an-export-btn"
               onClick={handleExportCsv}
               disabled={exporting}
-              title="Exporter les candidatures en CSV"
+              title={ta.exportTitle}
             >
               {exporting
                 ? <Loader2 size={15} className="an-spin" />
                 : <Download size={15} />}
-              {exporting ? 'Export…' : 'Export CSV'}
+              {exporting ? ta.exporting : ta.exportCsv}
             </button>
-            <button className="ad-icon-btn" aria-label="Notifications"><Bell size={18} /></button>
+            <button className="ad-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}><Bell size={18} /></button>
             <CircleUser size={32} className="ad-avatar" />
           </div>
         </div>
@@ -174,17 +169,17 @@ export default function AdminAnalytics() {
           <div className="an-kpi">
             <div className="an-kpi-icon an-kpi-icon--blue"><Clock size={20} /></div>
             <div>
-              <p className="an-kpi-label">Temps moyen de recrutement</p>
+              <p className="an-kpi-label">{ta.avgTimeToHire}</p>
               <p className="an-kpi-value">{fmtHours(data?.avgTimeToHireHours)}</p>
-              <p className="an-kpi-sub">de la candidature à l&apos;acceptation</p>
+              <p className="an-kpi-sub">{ta.avgTimeToHireSub}</p>
             </div>
           </div>
           <div className="an-kpi">
             <div className="an-kpi-icon an-kpi-icon--green"><TrendingUp size={20} /></div>
             <div>
-              <p className="an-kpi-label">Candidatures acceptées</p>
+              <p className="an-kpi-label">{ta.acceptedApplications}</p>
               <p className="an-kpi-value">{data?.conversionFunnel?.APPROVED ?? 0}</p>
-              <p className="an-kpi-sub">sur {totalApps} au total</p>
+              <p className="an-kpi-sub">{ta.outOfTotal.replace('{n}', totalApps)}</p>
             </div>
           </div>
         </div>
@@ -192,16 +187,16 @@ export default function AdminAnalytics() {
         {/* Weekly trend */}
         {weeklyData.length > 0 && (
           <div className="an-card">
-            <p className="an-card-title">Candidatures — 7 derniers jours</p>
-            <p className="an-card-sub">Nombre de nouvelles candidatures par jour</p>
+            <p className="an-card-title">{ta.weeklyTitle}</p>
+            <p className="an-card-sub">{ta.weeklySub}</p>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={weeklyData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#666' }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#aaa' }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--surface-border)" />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  formatter={(v) => [v, 'Candidatures']}
-                  contentStyle={{ borderRadius: 8, border: '1px solid #eee', fontSize: 12 }}
+                  formatter={(v) => [v, ta.applicationsTooltip]}
+                  contentStyle={{ borderRadius: 8, border: '1px solid var(--surface-border)', fontSize: 12, background: 'var(--surface-card)', color: 'var(--text-primary)' }}
                 />
                 <Line type="monotone" dataKey="count" stroke="#2b4fbf" strokeWidth={2} dot={{ r: 4, fill: '#2b4fbf' }} />
               </LineChart>
@@ -211,16 +206,16 @@ export default function AdminAnalytics() {
 
         {/* Conversion funnel chart */}
         <div className="an-card">
-          <p className="an-card-title">Entonnoir de conversion</p>
-          <p className="an-card-sub">Nombre de candidatures par étape</p>
+          <p className="an-card-title">{ta.funnelTitle}</p>
+          <p className="an-card-sub">{ta.funnelSub}</p>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={funnelData} barCategoryGap="30%" margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#666' }} axisLine={false} tickLine={false} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#aaa' }} axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--surface-border)" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
               <Tooltip
-                formatter={(v) => [v, 'Candidatures']}
-                contentStyle={{ borderRadius: 8, border: '1px solid #eee', fontSize: 12 }}
+                formatter={(v) => [v, ta.applicationsTooltip]}
+                contentStyle={{ borderRadius: 8, border: '1px solid var(--surface-border)', fontSize: 12, background: 'var(--surface-card)', color: 'var(--text-primary)' }}
               />
               <Bar dataKey="count" radius={[6, 6, 0, 0]}>
                 {funnelData.map((entry) => (
@@ -234,12 +229,12 @@ export default function AdminAnalytics() {
         {/* Conversion rates */}
         {Object.keys(rates).length > 0 && (
           <div className="an-card">
-            <p className="an-card-title">Taux de conversion par étape</p>
-            <p className="an-card-sub">Pourcentage de candidats passant à l&apos;étape suivante</p>
+            <p className="an-card-title">{ta.ratesTitle}</p>
+            <p className="an-card-sub">{ta.ratesSub}</p>
             <div className="an-rates">
               {Object.entries(rates).map(([key, rate]) => (
                 <div key={key} className="an-rate-item">
-                  <span className="an-rate-label">{RATE_LABELS[key] ?? key}</span>
+                  <span className="an-rate-label">{ta.rateLabels[key] ?? key}</span>
                   <div className="an-rate-bar-wrap">
                     <div className="an-rate-bar" style={{ width: `${Math.min(rate, 100)}%` }} />
                   </div>
@@ -253,13 +248,13 @@ export default function AdminAnalytics() {
         {/* Top jobs table */}
         {topJobs.length > 0 && (
           <div className="an-card">
-            <p className="an-card-title">Top postes (candidatures acceptées)</p>
+            <p className="an-card-title">{ta.topJobsTitle}</p>
             <table className="an-table">
               <thead>
                 <tr>
-                  <th>Poste</th>
-                  <th className="an-th-num">Acceptés</th>
-                  <th className="an-th-num">Délai moyen</th>
+                  <th>{ta.jobColumn}</th>
+                  <th className="an-th-num">{ta.acceptedColumn}</th>
+                  <th className="an-th-num">{ta.avgDelayColumn}</th>
                 </tr>
               </thead>
               <tbody>

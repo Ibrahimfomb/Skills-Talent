@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
-import { Calendar, Search, Filter, ChevronDown, Loader2, ListChecks } from 'lucide-react'
+import { Calendar, Search, Filter, ChevronDown, Loader2, ListChecks, MessageSquare, MessageCircle } from 'lucide-react'
 import { useAuthStore }            from '../../store/AuthStore'
 import AppNavbar                   from '../../components/common/AppNavbar'
 import MatchScoreBadge             from '../../features/matching/MatchScoreBadge'
@@ -9,22 +10,24 @@ import ReviewPanel                 from '../../features/reviews/ReviewPanel'
 import BulkStatusModal             from '../../features/automation/BulkStatusModal'
 import AddToPoolButton             from '../../features/talentpool/AddToPoolButton'
 import { getEmployerApplications, updateApplicationStatus } from '../../api/ApplicationApi'
+import { buildWhatsAppLink } from '../../utils/whatsapp'
+import { useTranslation } from '../../i18n/translations'
 import './CandidateReview.css'
 
-const COLUMNS = [
-  { id: 'SUBMITTED', label: 'Soumis',    color: '#2b4fbf', bg: '#e8f0ff' },
-  { id: 'SCREENING', label: 'Screening', color: '#a05a00', bg: '#fff3e0' },
-  { id: 'INTERVIEW', label: 'Entretien', color: '#7c3aed', bg: '#f3e8ff' },
-  { id: 'OFFER',     label: 'Offre',     color: '#0d7a5f', bg: '#e0f7f4' },
-  { id: 'APPROVED',  label: 'Accepté',   color: '#1a6e44', bg: '#e8f8ee' },
-  { id: 'REJECTED',  label: 'Rejeté',    color: '#c42033', bg: '#fff0f0' },
+const COLUMN_META = [
+  { id: 'SUBMITTED', color: '#2b4fbf', bg: '#e8f0ff' },
+  { id: 'SCREENING', color: '#a05a00', bg: '#fff3e0' },
+  { id: 'INTERVIEW', color: '#7c3aed', bg: '#f3e8ff' },
+  { id: 'OFFER',     color: '#0d7a5f', bg: '#e0f7f4' },
+  { id: 'APPROVED',  color: '#1a6e44', bg: '#e8f8ee' },
+  { id: 'REJECTED',  color: '#c42033', bg: '#fff0f0' },
 ]
 
 function initials(name = '') {
   return name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'
 }
 
-function KanbanCard({ c, idx, onSelect, isSelected, onToggle }) {
+function KanbanCard({ c, idx, onSelect, isSelected, onToggle, onContact, anonymousLabel }) {
   return (
     <Draggable draggableId={c.id} index={idx}>
       {(prov, snap) => (
@@ -37,10 +40,33 @@ function KanbanCard({ c, idx, onSelect, isSelected, onToggle }) {
         >
           <div className="kb-card-top">
             <div className="kb-avatar">{c.initials}</div>
-            <div className="kb-name">{c.name || 'Candidat anonyme'}</div>
+            <div className="kb-name">{c.name || anonymousLabel}</div>
             <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto', alignItems: 'center' }}>
               {c.candidateId && (
                 <AddToPoolButton candidateId={c.candidateId} onSuccess={() => {}} />
+              )}
+              {c.candidateId && (
+                <button
+                  className="kb-contact-btn"
+                  title="Contacter"
+                  aria-label="Contacter"
+                  onClick={e => { e.stopPropagation(); onContact(c) }}
+                >
+                  <MessageSquare size={14} />
+                </button>
+              )}
+              {c.candidatePhone && (
+                <a
+                  className="kb-contact-btn kb-contact-btn--wa"
+                  title="Contacter via WhatsApp"
+                  aria-label="Contacter via WhatsApp"
+                  href={buildWhatsAppLink(c.candidatePhone, `Bonjour ${c.name || ''}, je vous contacte au sujet de votre candidature pour « ${c.jobTitle || ''} ».`)}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <MessageCircle size={14} />
+                </a>
               )}
               <input
                 type="checkbox"
@@ -71,15 +97,21 @@ KanbanCard.propTypes = {
     match:       PropTypes.number,
     explanation: PropTypes.string,
     appliedDate: PropTypes.string,
+    candidatePhone: PropTypes.string,
   }).isRequired,
   idx:        PropTypes.number.isRequired,
   onSelect:   PropTypes.func.isRequired,
   isSelected: PropTypes.bool.isRequired,
   onToggle:   PropTypes.func.isRequired,
+  onContact:  PropTypes.func.isRequired,
+  anonymousLabel: PropTypes.string.isRequired,
 }
 
 export default function CandidateReview() {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
+  const t = useTranslation().employer.review
+  const COLUMNS = COLUMN_META.map(col => ({ ...col, label: t.columns[col.id] }))
 
   const [cards,         setCards]         = useState([])
   const [statuses,      setStatuses]      = useState({})
@@ -90,9 +122,6 @@ export default function CandidateReview() {
   const [selectedCard,  setSelectedCard]  = useState(null)
   const [selectedIds,   setSelectedIds]   = useState(new Set())
   const [bulkModalOpen, setBulkModalOpen] = useState(false)
-
-  // ── Chargement des données réelles ─────────────────────────────────────────
-  useEffect(() => { loadCards() }, [user?.id, loadCards])
 
   // ── Jobs distincts pour le filtre ──────────────────────────────────────────
   const jobs = [...new Map(cards.map(c => [c.jobId, { id: c.jobId, title: c.jobTitle }])).values()]
@@ -120,6 +149,10 @@ export default function CandidateReview() {
     })
   }, [])
 
+  const handleContact = useCallback((c) => {
+    navigate('/messages', { state: { contactId: c.candidateId, contactName: c.name } })
+  }, [navigate])
+
   const loadCards = useCallback(() => {
     setLoading(true)
     getEmployerApplications()
@@ -128,6 +161,7 @@ export default function CandidateReview() {
           id:            dto.id,
           candidateId:   dto.candidateId || dto.jobSeekerId,
           name:          dto.candidateName,
+          candidatePhone: dto.candidatePhone,
           initials:      initials(dto.candidateName),
           jobTitle:      dto.jobTitle,
           jobId:         dto.jobListingId,
@@ -137,9 +171,12 @@ export default function CandidateReview() {
           appliedDate:   '',
         })))
       })
-      .catch(err => setError(err?.response?.data?.message || 'Impossible de charger les candidatures.'))
+      .catch(err => setError(err?.response?.data?.message || t.loadError))
       .finally(() => setLoading(false))
-  }, [])
+  }, [t.loadError])
+
+  // ── Chargement des données réelles ─────────────────────────────────────────
+  useEffect(() => { loadCards() }, [user?.id, loadCards])
 
   // ── Drag & Drop → PATCH /applications/{id}/status ─────────────────────────
   const onDragEnd = useCallback(({ source, destination, draggableId }) => {
@@ -161,9 +198,9 @@ export default function CandidateReview() {
 
       <main className="cr-main cr-main--board">
         <div className="cr-header">
-          <h1 className="cr-title">Pipeline des candidatures</h1>
+          <h1 className="cr-title">{t.pipelineTitle}</h1>
           <p className="cr-subtitle">
-            {loading ? 'Chargement…' : `${cards.length} candidat${cards.length !== 1 ? 's' : ''} · glisser-déposer pour changer de statut`}
+            {loading ? t.loading : `${cards.length} ${cards.length !== 1 ? t.candidates.plural : t.candidates.singular} · ${t.dragHint}`}
           </p>
         </div>
 
@@ -173,7 +210,7 @@ export default function CandidateReview() {
             <input
               className="cr-select"
               style={{ paddingLeft: 32 }}
-              placeholder="Rechercher un candidat…"
+              placeholder={t.searchPlaceholder}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -181,7 +218,7 @@ export default function CandidateReview() {
           <div className="cr-filter-wrap">
             <Filter size={13} className="cr-filter-icon" />
             <select className="cr-select" value={filterJob} onChange={e => setFilterJob(e.target.value)}>
-              <option value="all">Tous les postes</option>
+              <option value="all">{t.allJobs}</option>
               {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
             </select>
             <ChevronDown size={13} className="cr-filter-arrow" />
@@ -189,7 +226,7 @@ export default function CandidateReview() {
           {selectedIds.size > 0 && (
             <button className="cr-bulk-btn" onClick={() => setBulkModalOpen(true)}>
               <ListChecks size={15} />
-              Actions en masse ({selectedIds.size})
+              {t.bulkActions} ({selectedIds.size})
             </button>
           )}
         </div>
@@ -197,7 +234,7 @@ export default function CandidateReview() {
         {loading && (
           <div className="cr-loading">
             <Loader2 size={28} className="cr-loading-icon" />
-            <p>Chargement des candidatures…</p>
+            <p>{t.loadingCandidates}</p>
           </div>
         )}
 
@@ -231,6 +268,8 @@ export default function CandidateReview() {
                               onSelect={setSelectedCard}
                               isSelected={selectedIds.has(c.id)}
                               onToggle={toggleSelect}
+                              onContact={handleContact}
+                              anonymousLabel={t.anonymousCandidate}
                             />
                           ))}
                           {provided.placeholder}

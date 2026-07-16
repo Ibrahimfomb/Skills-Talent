@@ -3,8 +3,12 @@ package com.skillset.application.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillset.application.dto.ChatRequest;
+import com.skillset.domain.entity.CandidateProfile;
+import com.skillset.domain.entity.EmployerProfile;
 import com.skillset.domain.entity.User;
 import com.skillset.domain.entity.UserRole;
+import com.skillset.domain.port.EmployerProfileRepositoryPort;
+import com.skillset.infrastructure.persistence.CandidateProfileRepository;
 import com.skillset.infrastructure.persistence.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +33,8 @@ public class ChatbotService {
     private String model;
 
     private final UserRepository userRepository;
+    private final CandidateProfileRepository candidateProfileRepository;
+    private final EmployerProfileRepositoryPort employerProfileRepositoryPort;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -73,8 +79,10 @@ public class ChatbotService {
             sb.append("• Aider à définir des fiches de poste et des grilles de rémunération\n");
         }
 
+        boolean hasServerProfile = appendServerProfile(sb, user);
+
         if (profile != null && !profile.isEmpty()) {
-            sb.append("\nContexte du profil :\n");
+            sb.append("\nContexte additionnel transmis par l'application :\n");
             profile.forEach((k, v) -> {
                 if (v != null && !String.valueOf(v).isBlank()
                         && !k.equals("id") && !k.equals("password")
@@ -82,6 +90,13 @@ public class ChatbotService {
                     sb.append("- ").append(k).append(" : ").append(v).append("\n");
                 }
             });
+        }
+
+        if (hasServerProfile) {
+            sb.append("\nTu as déjà accès aux informations de profil ci-dessus. ")
+              .append("NE redemande JAMAIS à l'utilisateur de préciser son domaine, son expérience, ")
+              .append("ses compétences ou sa localisation s'ils figurent déjà dans ce contexte — ")
+              .append("utilise-les directement pour personnaliser ta réponse.\n");
         }
 
         sb.append("\nRègles de réponse :\n");
@@ -94,6 +109,50 @@ public class ChatbotService {
         sb.append("- Ne réponds pas aux questions sans rapport avec l'emploi, le recrutement ou SkillSet\n");
 
         return sb.toString();
+    }
+
+    /**
+     * Injecte le profil réel de l'utilisateur (issu de l'onboarding) dans le prompt système,
+     * pour que STELLA connaisse déjà ces informations et n'ait pas besoin de les redemander.
+     */
+    private boolean appendServerProfile(StringBuilder sb, User user) {
+        if (user.getRole() == UserRole.CANDIDATE) {
+            Optional<CandidateProfile> profileOpt = candidateProfileRepository.findByUserId(user.getId());
+            if (profileOpt.isEmpty()) return false;
+            CandidateProfile p = profileOpt.get();
+            sb.append("\nProfil du candidat (déjà connu, ne pas redemander) :\n");
+            appendIfPresent(sb, "Domaine professionnel", p.getJobDomain());
+            appendIfPresent(sb, "Poste recherché", p.getDesiredRole());
+            appendIfPresent(sb, "Niveau d'expérience", p.getExperienceLevel());
+            appendIfPresent(sb, "Type de contrat souhaité", p.getContractType());
+            appendIfPresent(sb, "Localisation", p.getLocation() != null ? p.getLocation()
+                    : String.join(", ", nvl(p.getCity()), nvl(p.getCountry())));
+            appendIfPresent(sb, "Compétences", p.getSkills());
+            appendIfPresent(sb, "Bio", p.getBio());
+            return true;
+        }
+        if (user.getRole() == UserRole.EMPLOYER) {
+            Optional<EmployerProfile> profileOpt = employerProfileRepositoryPort.findByUserId(user.getId());
+            if (profileOpt.isEmpty()) return false;
+            EmployerProfile p = profileOpt.get();
+            sb.append("\nProfil de l'entreprise (déjà connu, ne pas redemander) :\n");
+            appendIfPresent(sb, "Entreprise", p.getCompanyName());
+            appendIfPresent(sb, "Secteur", p.getIndustry());
+            appendIfPresent(sb, "Taille", p.getCompanySize());
+            appendIfPresent(sb, "Localisation", String.join(", ", nvl(p.getCompanyCity()), nvl(p.getCompanyCountry())));
+            return true;
+        }
+        return false;
+    }
+
+    private void appendIfPresent(StringBuilder sb, String label, String value) {
+        if (value != null && !value.isBlank() && !value.equals(", ")) {
+            sb.append("- ").append(label).append(" : ").append(value).append("\n");
+        }
+    }
+
+    private String nvl(String s) {
+        return s != null ? s : "";
     }
 
     private String callAiProvider(String systemPrompt, List<Map<String, String>> history, String message) {

@@ -4,6 +4,7 @@ const STORAGE_KEY = 'ss_auth'
 
 export const useAuthStore = create((set) => ({
   user: null,
+  token: null,
   isAuthenticated: false,
   initialized: false,   // true once loadFromStorage has run
 
@@ -11,13 +12,13 @@ export const useAuthStore = create((set) => ({
     const { token, ...user } = data
     if (token) localStorage.setItem('authToken', token)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user))
-    set({ user, isAuthenticated: true, initialized: true })
+    set({ user, token, isAuthenticated: true, initialized: true })
   },
 
   logout: () => {
     localStorage.removeItem('authToken')
     localStorage.removeItem(STORAGE_KEY)
-    set({ user: null, isAuthenticated: false, initialized: true })
+    set({ user: null, token: null, isAuthenticated: false, initialized: true })
   },
 
   updateUser: (updates) => set((state) => {
@@ -32,7 +33,7 @@ export const useAuthStore = create((set) => ({
       const raw   = localStorage.getItem(STORAGE_KEY)
       const token = localStorage.getItem('authToken')
       if (raw && token) {
-        set({ user: JSON.parse(raw), isAuthenticated: true, initialized: true })
+        set({ user: JSON.parse(raw), token, isAuthenticated: true, initialized: true })
         return
       }
     } catch {

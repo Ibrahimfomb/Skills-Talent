@@ -1,33 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { X, Send, ChevronDown, Sparkles, WifiOff, Zap, Search, ChevronRight, MessageSquare, Phone } from 'lucide-react'
+import { X, Send, ChevronDown, Sparkles, WifiOff, Zap, Search, ChevronRight } from 'lucide-react'
 import { stellaChat, runStellaTask, appSearch } from '../../api/StellaApi'
 import { useOnlineStatus } from '../../hooks/useOnlineStatus'
 import { useAuthStore } from '../../store/AuthStore'
-import { useMessageStore } from '../../store/MessageStore'
+import { useTranslation } from '../../i18n/translations'
 import './ChatbotWidget.css'
-
-const QUICK_ACTIONS_CANDIDATE = [
-  { label: '🎯 Meilleures offres pour moi', msg: 'Quelles sont les meilleures offres pour mon profil ?' },
-  { label: '💰 Estimer mon salaire',         msg: 'Estime mon salaire selon mon profil.' },
-  { label: '📄 Analyser mon profil',         msg: 'Analyse mon profil et donne-moi des conseils.' },
-  { label: '📞 Contacter un recruteur',      msg: 'Je veux contacter un recruteur.' },
-]
-
-const QUICK_ACTIONS_EMPLOYER = [
-  { label: '✍️ Rédiger une offre',           msg: "Aide-moi à rédiger une offre d'emploi attractive." },
-  { label: '👥 Analyser des candidatures',   msg: 'Comment analyser efficacement les candidatures reçues ?' },
-  { label: '💬 Questions d\'entretien',      msg: 'Génère des questions d\'entretien pertinentes pour mon poste.' },
-  { label: '📊 Tendances du marché',         msg: 'Quelles sont les tendances salariales dans mon secteur ?' },
-]
-
-const STELLA_TASKS = [
-  { id: 'find-best',        icon: '🎯', label: 'Trouver mes meilleures offres',  desc: 'Analyse et classe les offres selon ton profil' },
-  { id: 'salary-analysis',  icon: '💰', label: 'Estimation de salaire',          desc: 'Calcule ta fourchette de rémunération' },
-  { id: 'profile-analysis', icon: '📊', label: 'Analyser mon profil',            desc: 'Score et conseils pour ton profil' },
-  { id: 'apply-top',        icon: '📤', label: 'Postuler automatiquement',       desc: 'Postule à la meilleure offre correspondante' },
-  { id: 'prepare-interview',icon: '🎤', label: 'Préparer un entretien',          desc: 'Questions et stratégies personnalisées' },
-]
 
 function TypingDots() {
   return <div className="cw-typing"><span /><span /><span /></div>
@@ -39,14 +16,20 @@ function renderText(text) {
   )
 }
 
+function buildGreeting(user, online, t) {
+  const name   = user?.firstName ? `, ${user.firstName}` : ''
+  const status = online ? '' : t.greetingOfflineNote
+  const body = user?.role === 'EMPLOYER' ? t.greetingEmployerBody : t.greetingCandidateBody
+  return `${t.greetingHello}${name} ! ${t.greetingIntro}\n\n${body}${status}`
+}
+
 export default function ChatbotWidget() {
-  const navigate = useNavigate()
   const { user }  = useAuthStore()
-  const { startConversation } = useMessageStore()
   const { isOnline, wasOffline } = useOnlineStatus()
+  const t = useTranslation().chatbot
 
   const isEmployer = user?.role === 'EMPLOYER'
-  const QUICK_ACTIONS = isEmployer ? QUICK_ACTIONS_EMPLOYER : QUICK_ACTIONS_CANDIDATE
+  const QUICK_ACTIONS = isEmployer ? t.quickActionsEmployer : t.quickActionsCandidate
 
   // Always include role + firstName in the profile context sent to the backend
   const profile = (() => {
@@ -60,7 +43,7 @@ export default function ChatbotWidget() {
   const [open, setOpen]           = useState(false)
   const [tab, setTab]             = useState('chat')
   const [messages, setMessages]   = useState([
-    { id: 0, role: 'stella', text: buildGreeting(user, isOnline), action: null },
+    { id: 0, role: 'stella', text: buildGreeting(user, isOnline, t), action: null },
   ])
   const [input, setInput]         = useState('')
   const [loading, setLoading]     = useState(false)
@@ -79,13 +62,13 @@ export default function ChatbotWidget() {
     if (!open) return
     let msg = null
     if (!isOnline) {
-      msg = "⚠️ **Connexion perdue.** Je continue à fonctionner avec les données SkillSet disponibles hors ligne. Les recherches internet sont suspendues."
+      msg = t.connectionLost
     } else if (wasOffline) {
-      msg = "✅ **Connexion rétablie !** Les recherches internet sont à nouveau disponibles."
+      msg = t.connectionRestored
     }
     if (msg) {
-      const t = setTimeout(() => pushStella(msg, null), 0)
-      return () => clearTimeout(t)
+      const timer = setTimeout(() => pushStella(msg, null), 0)
+      return () => clearTimeout(timer)
     }
     return undefined
   }, [isOnline]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -117,7 +100,7 @@ export default function ChatbotWidget() {
   const runTask = async (taskId) => {
     setTaskRunning(taskId)
     setTab('chat')
-    setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: `[Mode autonome] ${STELLA_TASKS.find(t => t.id === taskId)?.label}`, action: null }])
+    setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: `${t.autonomousModeTag} ${t.tasks.find(task => task.id === taskId)?.label}`, action: null }])
     setLoading(true)
 
     const result = await runStellaTask(taskId, profile)
@@ -125,16 +108,6 @@ export default function ChatbotWidget() {
     setMessages(prev => [...prev, { id: Date.now() + 1, role: 'stella', text: result, action: null }])
     setLoading(false)
     setTaskRunning(null)
-  }
-
-  const handleOpenConversation = (contact) => {
-    startConversation(contact)
-    navigate('/messages')
-    setOpen(false)
-  }
-
-  const handleWhatsApp = (url) => {
-    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const doSearch = (q = searchQ) => {
@@ -153,11 +126,11 @@ export default function ChatbotWidget() {
       <button
         className={`cw-fab ${open ? 'cw-fab--open' : ''}`}
         onClick={() => setOpen(v => !v)}
-        aria-label="Ouvrir STELLA"
+        aria-label={t.openStella}
       >
         {open ? <ChevronDown size={22} /> : <Sparkles size={22} />}
         {!open && <span className="cw-fab-label">STELLA</span>}
-        {!open && !isOnline && <span className="cw-fab-offline-dot" title="Hors ligne" />}
+        {!open && !isOnline && <span className="cw-fab-offline-dot" title={t.offline} />}
       </button>
 
       {open && (
@@ -166,13 +139,13 @@ export default function ChatbotWidget() {
           {/* Header */}
           <div className="cw-header">
             <div className="cw-header-info">
-              <div className="cw-avatar">S</div>
+              <div className="cw-avatar"><Sparkles size={18} /></div>
               <div>
-                <p className="cw-header-name">STELLA</p>
+                <p className="cw-header-name">STELLA <span className="cw-header-badge">IA</span></p>
                 <p className="cw-header-status">
                   {isOnline
-                    ? <><span className="cw-dot cw-dot--green" />En ligne · IA SkillSet</>
-                    : <><span className="cw-dot cw-dot--red" /><WifiOff size={11} style={{ marginRight: 3 }} />Hors ligne</>
+                    ? <><span className="cw-dot cw-dot--green" />{t.online}</>
+                    : <><span className="cw-dot cw-dot--red" /><WifiOff size={11} style={{ marginRight: 3 }} />{t.offline}</>
                   }
                 </p>
               </div>
@@ -180,15 +153,15 @@ export default function ChatbotWidget() {
             <div className="cw-header-actions">
               <button
                 className={`cw-mode-btn ${tab === 'tasks' ? 'active' : ''}`}
-                onClick={() => setTab(t => t === 'tasks' ? 'chat' : 'tasks')}
-                title="Mode autonome"
+                onClick={() => setTab(tb => tb === 'tasks' ? 'chat' : 'tasks')}
+                title={t.autonomousMode}
               >
                 <Zap size={15} />
               </button>
               <button
                 className={`cw-mode-btn ${tab === 'search' ? 'active' : ''}`}
-                onClick={() => setTab(t => t === 'search' ? 'chat' : 'search')}
-                title="Recherche globale"
+                onClick={() => setTab(tb => tb === 'search' ? 'chat' : 'search')}
+                title={t.globalSearch}
               >
                 <Search size={15} />
               </button>
@@ -200,16 +173,16 @@ export default function ChatbotWidget() {
           {!isOnline && (
             <div className="cw-offline-banner">
               <WifiOff size={13} />
-              Hors ligne — Recherches internet indisponibles
+              {t.offlineBanner}
             </div>
           )}
 
           {/* ── TAB: AUTONOMOUS TASKS ── */}
           {tab === 'tasks' && (
             <div className="cw-tasks-panel">
-              <p className="cw-tasks-title"><Zap size={14} /> Mode autonome STELLA</p>
-              <p className="cw-tasks-sub">Laissez STELLA agir pour vous automatiquement</p>
-              {STELLA_TASKS.map(task => (
+              <p className="cw-tasks-title"><Zap size={14} /> {t.autonomousModeTitle}</p>
+              <p className="cw-tasks-sub">{t.autonomousModeSub}</p>
+              {t.tasks.map(task => (
                 <button
                   key={task.id}
                   className={`cw-task-btn ${taskRunning === task.id ? 'running' : ''}`}
@@ -230,11 +203,11 @@ export default function ChatbotWidget() {
           {/* ── TAB: GLOBAL SEARCH ── */}
           {tab === 'search' && (
             <div className="cw-search-panel">
-              <p className="cw-tasks-title"><Search size={14} /> Recherche globale</p>
+              <p className="cw-tasks-title"><Search size={14} /> {t.globalSearchTitle}</p>
               <div className="cw-search-input-row">
                 <input
                   className="cw-search-input"
-                  placeholder="Poste, compétence, entreprise, contact…"
+                  placeholder={t.searchPlaceholder}
                   value={searchQ}
                   onChange={e => setSearchQ(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && doSearch()}
@@ -244,13 +217,13 @@ export default function ChatbotWidget() {
                 </button>
               </div>
               {!isOnline && (
-                <p className="cw-search-offline">⚠️ Hors ligne — Résultats limités aux données locales SkillSet</p>
+                <p className="cw-search-offline">{t.searchOfflineHint}</p>
               )}
               {searchRes && (
                 <div className="cw-search-results">
                   {searchRes.jobs.length > 0 && (
                     <>
-                      <p className="cw-search-section">💼 Offres d&apos;emploi ({searchRes.jobs.length})</p>
+                      <p className="cw-search-section">{t.jobsSection} ({searchRes.jobs.length})</p>
                       {searchRes.jobs.map(j => (
                         <div key={j.id} className="cw-search-item">
                           <span>{j.logo}</span>
@@ -264,7 +237,7 @@ export default function ChatbotWidget() {
                   )}
                   {searchRes.companies.length > 0 && (
                     <>
-                      <p className="cw-search-section">🏢 Entreprises ({searchRes.companies.length})</p>
+                      <p className="cw-search-section">{t.companiesSection} ({searchRes.companies.length})</p>
                       {searchRes.companies.map(c => (
                         <div key={c.id} className="cw-search-item">
                           <span>{c.logo}</span>
@@ -276,27 +249,8 @@ export default function ChatbotWidget() {
                       ))}
                     </>
                   )}
-                  {searchRes.contacts && searchRes.contacts.length > 0 && (
-                    <>
-                      <p className="cw-search-section">👤 Contacts ({searchRes.contacts.length})</p>
-                      {searchRes.contacts.map(c => (
-                        <button
-                          key={c.id}
-                          className="cw-search-item cw-search-item--btn"
-                          onClick={() => handleOpenConversation(c)}
-                        >
-                          <span>{c.avatar}</span>
-                          <div>
-                            <p className="cw-search-item-title">{c.name}</p>
-                            <p className="cw-search-item-sub">{c.role}</p>
-                          </div>
-                          <MessageSquare size={14} className="cw-search-contact-icon" />
-                        </button>
-                      ))}
-                    </>
-                  )}
-                  {searchRes.jobs.length === 0 && searchRes.companies.length === 0 && (!searchRes.contacts || searchRes.contacts.length === 0) && (
-                    <p className="cw-search-empty">Aucun résultat pour &laquo; {searchRes.query} &raquo;</p>
+                  {searchRes.jobs.length === 0 && searchRes.companies.length === 0 && (
+                    <p className="cw-search-empty">{t.noResultsFor} {searchRes.query} »</p>
                   )}
                 </div>
               )}
@@ -309,48 +263,19 @@ export default function ChatbotWidget() {
               <div className="cw-messages">
                 {messages.map(m => (
                   <div key={m.id} className={`cw-msg cw-msg--${m.role}`}>
-                    {m.role === 'stella' && <div className="cw-msg-avatar">S</div>}
+                    {m.role === 'stella' && <div className="cw-msg-avatar"><Sparkles size={13} /></div>}
                     <div className="cw-bubble">
                       {m.text.split('\n').map((line, i) => (
                         <span key={`${m.id}-${i}`}>
                           {renderText(line)}{i < m.text.split('\n').length - 1 && <br />}
                         </span>
                       ))}
-
-                      {/* Action buttons */}
-                      {m.action?.type === 'start_conversation' && (
-                        <button
-                          className="cw-action-btn cw-action-btn--msg"
-                          onClick={() => handleOpenConversation(m.action.contact)}
-                        >
-                          <MessageSquare size={14} />
-                          Ouvrir la conversation
-                        </button>
-                      )}
-                      {m.action?.type === 'whatsapp' && (
-                        <div className="cw-action-group">
-                          <button
-                            className="cw-action-btn cw-action-btn--wa"
-                            onClick={() => handleWhatsApp(m.action.url)}
-                          >
-                            <Phone size={14} />
-                            Envoyer sur WhatsApp
-                          </button>
-                          <button
-                            className="cw-action-btn cw-action-btn--msg"
-                            onClick={() => handleOpenConversation(m.action.contact)}
-                          >
-                            <MessageSquare size={14} />
-                            Messagerie SkillSet
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 ))}
                 {loading && (
                   <div className="cw-msg cw-msg--stella">
-                    <div className="cw-msg-avatar">S</div>
+                    <div className="cw-msg-avatar"><Sparkles size={13} /></div>
                     <div className="cw-bubble"><TypingDots /></div>
                   </div>
                 )}
@@ -371,7 +296,7 @@ export default function ChatbotWidget() {
                 <textarea
                   ref={inputRef}
                   className="cw-input"
-                  placeholder={isOnline ? 'Posez votre question à STELLA…' : 'Hors ligne — données locales uniquement'}
+                  placeholder={isOnline ? t.inputPlaceholderOnline : t.inputPlaceholderOffline}
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKey}
@@ -387,15 +312,4 @@ export default function ChatbotWidget() {
       )}
     </>
   )
-}
-
-function buildGreeting(user, online) {
-  const name   = user?.firstName ? `, ${user.firstName}` : ''
-  const status = online ? '' : '\n\n⚠️ Mode hors ligne — Recherches internet indisponibles.'
-
-  if (user?.role === 'EMPLOYER') {
-    return `Bonjour${name} ! Je suis **STELLA**, votre assistante IA SkillSet 🌟\n\nJe peux vous aider à :\n• Rédiger des offres d'emploi attractives\n• Analyser vos candidatures\n• Préparer vos entretiens\n• Analyser les tendances du marché\n• Définir vos grilles salariales${status}`
-  }
-
-  return `Bonjour${name} ! Je suis **STELLA**, votre assistante IA SkillSet 🌟\n\nJe peux :\n• Trouver les meilleures offres pour votre profil\n• Estimer votre salaire\n• Postuler automatiquement (Mode ⚡)\n• Vous mettre en contact avec un recruteur\n• Envoyer un message WhatsApp${status}`
 }

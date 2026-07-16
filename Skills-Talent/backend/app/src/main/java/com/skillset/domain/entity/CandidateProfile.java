@@ -34,6 +34,9 @@ public class CandidateProfile {
     @Column(columnDefinition = "text")
     private String skills;
 
+    @Column(columnDefinition = "text")
+    private String bio;
+
     @Column(name = "ai_answers", columnDefinition = "text")
     private String aiAnswers;
 

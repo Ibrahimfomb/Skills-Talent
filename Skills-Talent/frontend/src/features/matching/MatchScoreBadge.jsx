@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types'
+import { useTranslation } from '../../i18n/translations'
 import './MatchScoreBadge.css'
 
 /**
@@ -11,6 +12,7 @@ import './MatchScoreBadge.css'
  *   size        'sm'|'md'— Taille ('sm' par défaut pour le Kanban)
  */
 export default function MatchScoreBadge({ score, explanation, size = 'sm' }) {
+  const t = useTranslation().matching
   if (score == null) return null
 
   const pct = Math.round(score)
@@ -18,7 +20,7 @@ export default function MatchScoreBadge({ score, explanation, size = 'sm' }) {
 
   return (
     <span className={`msb msb--${tier} msb--${size}${explanation ? ' msb--tip' : ''}`}>
-      {pct}%&nbsp;IA
+      {pct}%&nbsp;{t.aiLabel}
       {explanation && (
         <span className="msb-tooltip" role="tooltip">{explanation}</span>
       )}

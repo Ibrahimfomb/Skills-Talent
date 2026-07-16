@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { ShieldCheck, ShieldOff, ShieldAlert, Copy, Check } from 'lucide-react'
 import { setup2fa, confirm2fa, disable2fa } from '../../api/AuthApi'
 import { useAuthStore } from '../../store/AuthStore'
+import { useTranslation } from '../../i18n/translations'
 
 /**
  * Composant de gestion du 2FA dans les paramètres de sécurité.
  * Trois états : idle → setup (QR affiché) → enabled.
  */
 export default function TwoFactorSetup() {
+  const t = useTranslation().twoFactorSetup
   const { user, updateUser } = useAuthStore()
   const isEnabled = Boolean(user?.twoFactorEnabled)
 
@@ -27,7 +29,7 @@ export default function TwoFactorSetup() {
       setQrData(data)
       setPhase('qr')
     } catch (err) {
-      setError(err.response?.data?.message || 'Impossible de générer le QR code.')
+      setError(err.response?.data?.message || t.qrError)
     } finally {
       setLoading(false)
     }
@@ -37,7 +39,7 @@ export default function TwoFactorSetup() {
   const handleConfirm = async (e) => {
     e.preventDefault()
     const cleaned = code.replace(/\s/g, '')
-    if (cleaned.length !== 6) { setError('Le code doit contenir 6 chiffres.'); return }
+    if (cleaned.length !== 6) { setError(t.codeLength); return }
     setLoading(true)
     setError('')
     try {
@@ -47,7 +49,7 @@ export default function TwoFactorSetup() {
       setQrData(null)
       setCode('')
     } catch (err) {
-      setError(err.response?.data?.message || 'Code invalide.')
+      setError(err.response?.data?.message || t.invalidCode)
     } finally {
       setLoading(false)
     }
@@ -57,7 +59,7 @@ export default function TwoFactorSetup() {
   const handleDisable = async (e) => {
     e.preventDefault()
     const cleaned = code.replace(/\s/g, '')
-    if (cleaned.length !== 6) { setError('Le code doit contenir 6 chiffres.'); return }
+    if (cleaned.length !== 6) { setError(t.codeLength); return }
     setLoading(true)
     setError('')
     try {
@@ -66,7 +68,7 @@ export default function TwoFactorSetup() {
       setPhase('idle')
       setCode('')
     } catch (err) {
-      setError(err.response?.data?.message || 'Code invalide.')
+      setError(err.response?.data?.message || t.invalidCode)
     } finally {
       setLoading(false)
     }
@@ -85,14 +87,13 @@ export default function TwoFactorSetup() {
       <div className="tfa-card">
         <div className="tfa-status tfa-status--off">
           <ShieldOff size={20} />
-          <span>Authentification à deux facteurs <strong>désactivée</strong></span>
+          <span>{t.disabledStatus} <strong>{t.disabledLabel}</strong></span>
         </div>
         <p className="tfa-desc">
-          Protégez votre compte avec une application comme Google Authenticator ou Authy.
-          À chaque connexion, un code temporaire vous sera demandé en plus de votre mot de passe.
+          {t.protectAccount}
         </p>
         <button className="tfa-btn tfa-btn--primary" onClick={handleSetup} disabled={loading}>
-          {loading ? <span className="auth-spinner" /> : 'Activer la vérification en deux étapes'}
+          {loading ? <span className="auth-spinner" /> : t.enable2fa}
         </button>
         {error && <p className="tfa-error">{error}</p>}
       </div>
@@ -105,23 +106,23 @@ export default function TwoFactorSetup() {
       <div className="tfa-card">
         <div className="tfa-status tfa-status--pending">
           <ShieldAlert size={20} />
-          <span>Configuration en cours — scannez le QR code</span>
+          <span>{t.settingUp}</span>
         </div>
 
         <ol className="tfa-steps">
-          <li>Ouvrez <strong>Google Authenticator</strong>, <strong>Authy</strong> ou une app compatible.</li>
-          <li>Appuyez sur <strong>+</strong> puis <strong>Scanner un QR code</strong>.</li>
-          <li>Scannez le code ci-dessous, puis entrez le code à 6 chiffres généré.</li>
+          <li>{t.step1} <strong>{t.step1Apps}</strong></li>
+          <li>{t.step2} <strong>+</strong> {t.step2Action}</li>
+          <li>{t.step3}</li>
         </ol>
 
         <div className="tfa-qr-wrap">
-          <img src={qrData.qrCodeImageBase64} alt="QR code 2FA" className="tfa-qr" />
+          <img src={qrData.qrCodeImageBase64} alt={t.qrAlt} className="tfa-qr" />
         </div>
 
         <div className="tfa-secret-row">
-          <span className="tfa-secret-label">Clé manuelle :</span>
+          <span className="tfa-secret-label">{t.manualKey}</span>
           <code className="tfa-secret">{qrData.secret}</code>
-          <button type="button" className="tfa-copy" onClick={copySecret} title="Copier la clé">
+          <button type="button" className="tfa-copy" onClick={copySecret} title={t.copyKey}>
             {copied ? <Check size={14} /> : <Copy size={14} />}
           </button>
         </div>
@@ -142,7 +143,7 @@ export default function TwoFactorSetup() {
             autoFocus
           />
           <button type="submit" className="tfa-btn tfa-btn--primary" disabled={loading}>
-            {loading ? <span className="auth-spinner" /> : 'Confirmer et activer'}
+            {loading ? <span className="auth-spinner" /> : t.confirmAndEnable}
           </button>
         </form>
 
@@ -151,7 +152,7 @@ export default function TwoFactorSetup() {
           className="tfa-btn tfa-btn--ghost"
           onClick={() => { setPhase('idle'); setQrData(null); setCode(''); setError('') }}
         >
-          Annuler
+          {t.cancel}
         </button>
       </div>
     )
@@ -163,16 +164,16 @@ export default function TwoFactorSetup() {
       <div className="tfa-card">
         <div className="tfa-status tfa-status--on">
           <ShieldCheck size={20} />
-          <span>Authentification à deux facteurs <strong>activée</strong></span>
+          <span>{t.disabledStatus} <strong>{t.enabledLabel}</strong></span>
         </div>
         <p className="tfa-desc">
-          Votre compte est protégé. Un code vous sera demandé à chaque connexion.
+          {t.accountProtected}
         </p>
         <button
           className="tfa-btn tfa-btn--danger"
           onClick={() => { setPhase('disabling'); setCode(''); setError('') }}
         >
-          Désactiver la vérification en deux étapes
+          {t.disable2fa}
         </button>
       </div>
     )
@@ -184,10 +185,10 @@ export default function TwoFactorSetup() {
       <div className="tfa-card">
         <div className="tfa-status tfa-status--on">
           <ShieldCheck size={20} />
-          <span>Confirmez la désactivation</span>
+          <span>{t.confirmDisableTitle}</span>
         </div>
         <p className="tfa-desc">
-          Entrez un code depuis votre application pour confirmer la désactivation.
+          {t.confirmDisableDesc}
         </p>
 
         {error && <p className="tfa-error">{error}</p>}
@@ -206,7 +207,7 @@ export default function TwoFactorSetup() {
             autoFocus
           />
           <button type="submit" className="tfa-btn tfa-btn--danger" disabled={loading}>
-            {loading ? <span className="auth-spinner" /> : 'Confirmer la désactivation'}
+            {loading ? <span className="auth-spinner" /> : t.confirmDisable}
           </button>
         </form>
 
@@ -215,7 +216,7 @@ export default function TwoFactorSetup() {
           className="tfa-btn tfa-btn--ghost"
           onClick={() => { setPhase('idle'); setCode(''); setError('') }}
         >
-          Annuler
+          {t.cancel}
         </button>
       </div>
     )

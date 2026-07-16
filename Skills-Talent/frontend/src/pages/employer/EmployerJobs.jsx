@@ -7,22 +7,17 @@ import {
 import { useAuthStore } from '../../store/AuthStore'
 import { JOBS }         from '../../data/mockData'
 import AppNavbar        from '../../components/common/AppNavbar'
+import { useTranslation } from '../../i18n/translations'
 import './EmployerJobs.css'
 
 function fmtSalary(s) {
   return `${(s.min / 1000).toFixed(0)}k – ${(s.max / 1000).toFixed(0)}k ${s.currency}`
 }
 
-const NAV_LINKS = [
-  ['/dashboard/employer', 'Tableau de bord', true],
-  ['/employer/jobs',      'Mes offres',       false],
-  ['/employer/candidates','Candidatures',     false],
-  ['/employer/company',   'Mon entreprise',   false],
-]
-
 export default function EmployerJobs() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const t = useTranslation().employer.jobs
   const [closedIds, setClosedIds] = useState([])
   const [activeFilter, setActiveFilter] = useState('all')
 
@@ -47,9 +42,9 @@ export default function EmployerJobs() {
   const toggleClose = (id) => setClosedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
   const FILTERS = [
-    { id: 'all',    label: 'Toutes',    count: allJobs.length },
-    { id: 'active', label: 'Actives',   count: allJobs.filter(j => !closedIds.includes(j.id)).length },
-    { id: 'closed', label: 'Clôturées', count: closedIds.length },
+    { id: 'all',    label: t.filters.all,    count: allJobs.length },
+    { id: 'active', label: t.filters.active, count: allJobs.filter(j => !closedIds.includes(j.id)).length },
+    { id: 'closed', label: t.filters.closed, count: closedIds.length },
   ]
 
   return (
@@ -66,13 +61,13 @@ export default function EmployerJobs() {
         {/* En-tête */}
         <div className="ej-header">
           <div>
-            <h1 className="ej-title"><Briefcase size={22} /> Mes offres</h1>
+            <h1 className="ej-title"><Briefcase size={22} /> {t.pageTitle}</h1>
             <p className="ej-subtitle">
-              {allJobs.length} offre{allJobs.length !== 1 ? 's' : ''} publiée{allJobs.length !== 1 ? 's' : ''}
+              {allJobs.length} {allJobs.length !== 1 ? t.published.plural : t.published.singular}
             </p>
           </div>
           <button className="ej-new-btn" onClick={() => navigate('/employer/jobs/new')}>
-            <Plus size={15} /> Publier une offre
+            <Plus size={15} /> {t.newJob}
           </button>
         </div>
 
@@ -85,9 +80,9 @@ export default function EmployerJobs() {
               style={{
                 padding: '8px 18px', borderRadius: '20px', fontSize: '13px', fontWeight: 600,
                 cursor: 'pointer', border: 'none', transition: 'all 0.14s',
-                background: activeFilter === f.id ? '#c42033' : '#fff',
-                color: activeFilter === f.id ? '#fff' : '#555',
-                boxShadow: activeFilter === f.id ? '0 2px 8px rgba(196,32,51,0.25)' : '0 0 0 1.5px #ebebeb',
+                background: activeFilter === f.id ? '#c42033' : 'var(--surface-card)',
+                color: activeFilter === f.id ? '#fff' : 'var(--text-secondary)',
+                boxShadow: activeFilter === f.id ? '0 2px 8px rgba(196,32,51,0.25)' : '0 0 0 1.5px var(--surface-border)',
               }}
             >
               {f.label} <span style={{ opacity: 0.75, marginLeft: '4px' }}>{f.count}</span>
@@ -99,10 +94,10 @@ export default function EmployerJobs() {
         {jobs.length === 0 ? (
           <div className="ej-empty">
             <Briefcase size={48} className="ej-empty-icon" />
-            <h3>Aucune offre dans cette catégorie</h3>
-            <p>Publiez votre première offre pour attirer des talents.</p>
+            <h3>{t.emptyTitle}</h3>
+            <p>{t.emptyHint}</p>
             <button className="ej-empty-btn" onClick={() => navigate('/employer/jobs/new')}>
-              <Plus size={16} /> Publier une offre
+              <Plus size={16} /> {t.newJob}
             </button>
           </div>
         ) : (
@@ -120,14 +115,14 @@ export default function EmployerJobs() {
                     <div className="ej-card-top">
                       <h3 className="ej-card-title">{job.title}</h3>
                       <span className={`ej-status-badge ${isClosed ? 'ej-status-badge--closed' : 'ej-status-badge--active'}`}>
-                        {isClosed ? <><PauseCircle size={11} /> Clôturée</> : <><CheckCircle2 size={11} /> Active</>}
+                        {isClosed ? <><PauseCircle size={11} /> {t.closedBadge}</> : <><CheckCircle2 size={11} /> {t.activeBadge}</>}
                       </span>
                     </div>
                     <div className="ej-card-meta">
                       <span>{job.type}</span>
                       <span>{job.experience}</span>
                       <span><MapPin size={11} /> {job.location?.split(',')[0] ?? job.location}</span>
-                      {job.remote && <span>Télétravail</span>}
+                      {job.remote && <span>{t.remote}</span>}
                       <span style={{ color: '#c42033', fontWeight: 700 }}>{fmtSalary(job.salary)}</span>
                     </div>
                     {job.skills?.length > 0 && (
@@ -143,7 +138,7 @@ export default function EmployerJobs() {
                   <div className="ej-card-stats">
                     <div className="ej-stat">
                       <span className="ej-stat-value"><Users size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> {job.applicants ?? 0}</span>
-                      <span className="ej-stat-label">candidat{(job.applicants ?? 0) !== 1 ? 's' : ''}</span>
+                      <span className="ej-stat-label">{(job.applicants ?? 0) !== 1 ? t.candidates.plural : t.candidates.singular}</span>
                     </div>
                   </div>
 
@@ -153,13 +148,13 @@ export default function EmployerJobs() {
                       className="ej-action-btn ej-action-btn--primary"
                       onClick={() => navigate('/employer/candidates')}
                     >
-                      <Eye size={13} /> Candidats <ChevronRight size={12} />
+                      <Eye size={13} /> {t.viewCandidates} <ChevronRight size={12} />
                     </button>
                     <button
                       className={`ej-action-btn ${isClosed ? 'ej-action-btn--open' : 'ej-action-btn--ghost'}`}
                       onClick={() => toggleClose(job.id)}
                     >
-                      {isClosed ? 'Rouvrir' : 'Clôturer'}
+                      {isClosed ? t.reopen : t.close}
                     </button>
                   </div>
 

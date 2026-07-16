@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { Loader2, AlertCircle, Check, Link as LinkIcon } from 'lucide-react'
 import { getGoogleAuthUrl, getGoogleStatus, disconnectGoogle, testFranceTravailConnection } from '../../api/IntegrationsApi'
 import AppNavbar from '../../components/common/AppNavbar'
+import { useTranslation } from '../../i18n/translations'
 import './IntegrationsPage.css'
 
 export default function IntegrationsPage() {
+  const t = useTranslation().integrations
   // Google Calendar state
   const [googleConnected, setGoogleConnected] = useState(false)
   const [googleEmail, setGoogleEmail] = useState('')
@@ -21,6 +23,7 @@ export default function IntegrationsPage() {
 
   // Toast
   const [toastMessage, setToastMessage] = useState('')
+  const [toastIsError, setToastIsError] = useState(false)
 
   // Load Google status on mount
   useEffect(() => {
@@ -48,22 +51,22 @@ export default function IntegrationsPage() {
       }
     } catch (err) {
       console.error('Error getting Google auth URL:', err)
-      showToast('Erreur lors de la connexion à Google')
+      showToast(t.googleConnectError, true)
     }
   }
 
   const handleDisconnectGoogle = async () => {
-    if (!window.confirm('Êtes-vous sûr de vouloir déconnecter votre Google Calendar ?')) return
+    if (!window.confirm(t.confirmDisconnectGoogle)) return
 
     try {
       setGoogleDisconnecting(true)
       await disconnectGoogle()
       setGoogleConnected(false)
       setGoogleEmail('')
-      showToast('Google Calendar déconnecté')
+      showToast(t.googleDisconnected, false)
     } catch (err) {
       console.error('Error disconnecting Google:', err)
-      showToast('Erreur lors de la déconnexion')
+      showToast(t.disconnectError, true)
     } finally {
       setGoogleDisconnecting(false)
     }
@@ -71,7 +74,7 @@ export default function IntegrationsPage() {
 
   const handleTestFranceTravail = async () => {
     if (!clientId || !clientSecret) {
-      setFranceTravailError('Veuillez remplir les champs Client ID et Client Secret')
+      setFranceTravailError(t.fillClientFields)
       return
     }
 
@@ -83,18 +86,19 @@ export default function IntegrationsPage() {
       await testFranceTravailConnection(clientId, clientSecret)
       setFranceTravailConnected(true)
       setFranceTravailSuccess(true)
-      showToast('Connexion à France Travail réussie')
+      showToast(t.franceTravailSuccessToast, false)
       setTimeout(() => setFranceTravailSuccess(false), 3000)
     } catch (err) {
       console.error('Error testing France Travail connection:', err)
       setFranceTravailConnected(false)
-      setFranceTravailError(err.response?.data?.message || 'Erreur de connexion à France Travail')
+      setFranceTravailError(err.response?.data?.message || t.franceTravailError)
     } finally {
       setTestingConnection(false)
     }
   }
 
-  const showToast = (msg) => {
+  const showToast = (msg, isError) => {
+    setToastIsError(isError)
     setToastMessage(msg)
     setTimeout(() => setToastMessage(''), 3000)
   }
@@ -105,12 +109,12 @@ export default function IntegrationsPage() {
 
       <div className="st-body">
         <main className="integrations-main">
-          <h1 className="integrations-title">Intégrations</h1>
-          <p className="integrations-subtitle">Gérez vos connexions avec les services externes</p>
+          <h1 className="integrations-title">{t.title}</h1>
+          <p className="integrations-subtitle">{t.subtitle}</p>
 
           {/* Toast */}
           {toastMessage && (
-            <div className={`integrations-toast ${toastMessage.includes('Erreur') ? 'integrations-toast--error' : ''}`}>
+            <div className={`integrations-toast ${toastIsError ? 'integrations-toast--error' : ''}`}>
               {toastMessage}
             </div>
           )}
@@ -120,9 +124,9 @@ export default function IntegrationsPage() {
             <section className="integration-card">
               <div className="integration-header">
                 <div>
-                  <h2 className="integration-title">Google Calendar</h2>
+                  <h2 className="integration-title">{t.googleCalendar}</h2>
                   <p className="integration-description">
-                    Synchronisez automatiquement vos entretiens avec Google Calendar
+                    {t.googleCalendarDesc}
                   </p>
                 </div>
                 {googleLoading ? (
@@ -130,29 +134,28 @@ export default function IntegrationsPage() {
                 ) : googleConnected ? (
                   <div className="integration-badge integration-badge--success">
                     <Check size={14} />
-                    Connecté
+                    {t.connected}
                   </div>
                 ) : (
                   <div className="integration-badge integration-badge--inactive">
-                    Non connecté
+                    {t.notConnected}
                   </div>
                 )}
               </div>
 
               <p className="integration-explain">
-                Les entretiens créés seront automatiquement ajoutés à votre Google Calendar et des invitations
-                envoyées aux candidats.
+                {t.googleExplain}
               </p>
 
               {googleLoading ? (
                 <div className="integration-loading">
                   <Loader2 size={20} className="integration-spin" />
-                  Chargement...
+                  {t.loading}
                 </div>
               ) : googleConnected ? (
                 <div className="integration-connected">
                   <div className="integration-info">
-                    <p className="integration-info-label">Compte connecté :</p>
+                    <p className="integration-info-label">{t.connectedAccount}</p>
                     <p className="integration-info-value">{googleEmail}</p>
                   </div>
                   <button
@@ -161,7 +164,7 @@ export default function IntegrationsPage() {
                     disabled={googleDisconnecting}
                   >
                     {googleDisconnecting ? <Loader2 size={14} className="integration-spin" /> : null}
-                    Déconnecter
+                    {t.disconnect}
                   </button>
                 </div>
               ) : (
@@ -170,7 +173,7 @@ export default function IntegrationsPage() {
                   onClick={handleConnectGoogle}
                 >
                   <LinkIcon size={16} />
-                  Connecter Google Calendar
+                  {t.connectGoogleCalendar}
                 </button>
               )}
             </section>
@@ -179,26 +182,25 @@ export default function IntegrationsPage() {
             <section className="integration-card">
               <div className="integration-header">
                 <div>
-                  <h2 className="integration-title">France Travail</h2>
+                  <h2 className="integration-title">{t.franceTravail}</h2>
                   <p className="integration-description">
-                    Publiez vos offres d&apos;emploi sur France Travail
+                    {t.franceTravailDesc}
                   </p>
                 </div>
                 {franceTravailConnected ? (
                   <div className="integration-badge integration-badge--success">
                     <Check size={14} />
-                    Connecté
+                    {t.connected}
                   </div>
                 ) : (
                   <div className="integration-badge integration-badge--inactive">
-                    Non connecté
+                    {t.notConnected}
                   </div>
                 )}
               </div>
 
               <p className="integration-explain">
-                Connectez vos identifiants France Travail pour pouvoir publier vos offres d&apos;emploi directement
-                depuis SkillSet.
+                {t.franceTravailExplain}
               </p>
 
               {franceTravailError && (
@@ -211,28 +213,28 @@ export default function IntegrationsPage() {
               {franceTravailSuccess && (
                 <div className="integration-success">
                   <Check size={16} />
-                  Connexion réussie !
+                  {t.connectionSuccess}
                 </div>
               )}
 
               <div className="integration-form">
                 <div className="form-group">
-                  <label className="form-label">Client ID</label>
+                  <label className="form-label">{t.clientId}</label>
                   <input
                     type="password"
                     className="form-input"
-                    placeholder="Entrez votre Client ID"
+                    placeholder={t.clientIdPlaceholder}
                     value={clientId}
                     onChange={(e) => setClientId(e.target.value)}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Client Secret</label>
+                  <label className="form-label">{t.clientSecret}</label>
                   <input
                     type="password"
                     className="form-input"
-                    placeholder="Entrez votre Client Secret"
+                    placeholder={t.clientSecretPlaceholder}
                     value={clientSecret}
                     onChange={(e) => setClientSecret(e.target.value)}
                   />
@@ -244,7 +246,7 @@ export default function IntegrationsPage() {
                   disabled={testingConnection}
                 >
                   {testingConnection ? <Loader2 size={14} className="integration-spin" /> : null}
-                  Sauvegarder et tester
+                  {t.saveAndTest}
                 </button>
               </div>
             </section>

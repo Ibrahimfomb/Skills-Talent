@@ -5,6 +5,7 @@ import {
   getPoolMembers, removeCandidateFromPool, updateMemberStatus, getRecommendedCandidates
 } from '../../api/TalentPoolApi'
 import AppNavbar from '../../components/common/AppNavbar'
+import { useTranslation } from '../../i18n/translations'
 
 const STATUS_COLORS = {
   ACTIVE: '#4caf50',
@@ -16,6 +17,7 @@ const STATUS_COLORS = {
 export default function TalentPoolDetail() {
   const { poolId } = useParams()
   const navigate = useNavigate()
+  const t = useTranslation().talentPoolDetail
 
   const [pool, setPool] = useState(null)
   const [members, setMembers] = useState([])
@@ -39,10 +41,10 @@ export default function TalentPoolDetail() {
       setLoading(true)
       setError(null)
       // TODO: fetch pool data from API
-      setPool({ id: poolId, name: 'Vivier Example', description: 'Description' })
+      setPool({ id: poolId, name: 'Vivier Développeurs Douala', description: 'Candidats tech présélectionnés pour vos prochains postes.' })
     } catch (err) {
       console.error('Error loading pool:', err)
-      setError('Erreur lors du chargement du vivier')
+      setError(t.loadError)
     } finally {
       setLoading(false)
     }
@@ -92,12 +94,12 @@ export default function TalentPoolDetail() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#fafafa' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--surface-page)' }}>
         <AppNavbar />
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
           <div style={{
             display: 'inline-block', width: '32px', height: '32px',
-            border: '3px solid #ebebeb', borderTop: '3px solid #c42033', borderRadius: '50%',
+            border: '3px solid var(--surface-border)', borderTop: '3px solid #c42033', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite'
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -108,18 +110,18 @@ export default function TalentPoolDetail() {
 
   if (error || !pool) {
     return (
-      <div style={{ minHeight: '100vh', background: '#fafafa' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--surface-page)' }}>
         <AppNavbar />
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
           <button
             onClick={() => navigate('/employer/talent-pools')}
-            style={{ padding: '8px 16px', background: '#f0f0f0', border: 'none', borderRadius: '6px', cursor: 'pointer', marginBottom: '20px' }}
+            style={{ padding: '8px 16px', background: 'var(--surface-border-soft)', border: 'none', borderRadius: '6px', cursor: 'pointer', marginBottom: '20px', color: 'var(--text-primary)' }}
           >
             <ChevronLeft size={16} style={{ display: 'inline', marginRight: '8px' }} />
-            Retour
+            {t.back}
           </button>
           <div style={{ padding: '20px', borderRadius: '8px', backgroundColor: '#fee', border: '1px solid #fcc', color: '#c42033' }}>
-            {error || 'Vivier non trouvé'}
+            {error || t.notFound}
           </div>
         </main>
       </div>
@@ -127,7 +129,7 @@ export default function TalentPoolDetail() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafafa' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--surface-page)' }}>
       <AppNavbar />
 
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
@@ -136,19 +138,19 @@ export default function TalentPoolDetail() {
           onClick={() => navigate('/employer/talent-pools')}
           style={{
             display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '8px 16px', background: 'transparent', border: '1px solid #ddd', borderRadius: '6px',
-            cursor: 'pointer', color: '#666', fontSize: '14px', marginBottom: '24px'
+            padding: '8px 16px', background: 'transparent', border: '1px solid var(--surface-border)', borderRadius: '6px',
+            cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px'
           }}
         >
-          <ChevronLeft size={16} /> Retour aux viviers
+          <ChevronLeft size={16} /> {t.backToPools}
         </button>
 
         {/* Header */}
         <div style={{ marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px 0' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px 0' }}>
             {pool.name}
           </h1>
-          <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>
             {pool.description}
           </p>
         </div>
@@ -156,15 +158,15 @@ export default function TalentPoolDetail() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '40px' }}>
           {[
-            { label: 'Total', value: members.length, color: '#666' },
-            { label: 'Actifs', value: countByStatus('ACTIVE'), color: '#4caf50' },
-            { label: 'Contactés', value: countByStatus('CONTACTED'), color: '#ff9800' },
-            { label: 'Embauchés', value: countByStatus('HIRED'), color: '#2196f3' }
+            { label: t.total, value: members.length, color: 'var(--text-secondary)' },
+            { label: t.active, value: countByStatus('ACTIVE'), color: '#4caf50' },
+            { label: t.contacted, value: countByStatus('CONTACTED'), color: '#ff9800' },
+            { label: t.hired, value: countByStatus('HIRED'), color: '#2196f3' }
           ].map((stat, i) => (
             <div key={i} style={{
-              padding: '20px', borderRadius: '8px', background: '#fff', border: '1px solid #ebebeb'
+              padding: '20px', borderRadius: '8px', background: 'var(--surface-card)', border: '1px solid var(--surface-border)'
             }}>
-              <p style={{ fontSize: '12px', color: '#999', margin: '0 0 8px 0' }}>{stat.label}</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 8px 0' }}>{stat.label}</p>
               <p style={{ fontSize: '24px', fontWeight: 700, color: stat.color, margin: 0 }}>
                 {stat.value}
               </p>
@@ -173,42 +175,42 @@ export default function TalentPoolDetail() {
         </div>
 
         {/* Members Table */}
-        <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #ebebeb', marginBottom: '24px', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface-card)', borderRadius: '8px', border: '1px solid var(--surface-border)', marginBottom: '24px', overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #ebebeb', background: '#fafafa' }}>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#666' }}>Nom</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#666' }}>Titre</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#666' }}>Score</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#666' }}>Notes</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#666' }}>Statut</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#666' }}>Actions</th>
+                <tr style={{ borderBottom: '1px solid var(--surface-border)', background: 'var(--surface-page)' }}>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>{t.name}</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>{t.title}</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>{t.score}</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>{t.notes}</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>{t.status}</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: 'var(--text-secondary)' }}>{t.actions}</th>
                 </tr>
               </thead>
               <tbody>
                 {members.length === 0 ? (
                   <tr>
-                    <td colSpan="6" style={{ padding: '40px 16px', textAlign: 'center', color: '#999' }}>
-                      Aucun candidat dans ce vivier
+                    <td colSpan="6" style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      {t.noCandidates}
                     </td>
                   </tr>
                 ) : (
                   members.map(member => (
-                    <tr key={member.id} style={{ borderBottom: '1px solid #ebebeb' }}>
+                    <tr key={member.id} style={{ borderBottom: '1px solid var(--surface-border)' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {member.avatar && (
                             <img src={member.avatar} alt={member.name} style={{
-                              width: '32px', height: '32px', borderRadius: '50%', background: '#ebebeb'
+                              width: '32px', height: '32px', borderRadius: '50%', background: 'var(--surface-border-soft)'
                             }} />
                           )}
-                          <span style={{ color: '#1a1a1a', fontWeight: 500 }}>{member.name}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{member.name}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#666' }}>{member.title || '—'}</td>
-                      <td style={{ padding: '12px 16px', color: '#666' }}>{member.score ? `${member.score}%` : '—'}</td>
-                      <td style={{ padding: '12px 16px', color: '#666', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{member.title || '—'}</td>
+                      <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{member.score ? `${member.score}%` : '—'}</td>
+                      <td style={{ padding: '12px 16px', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {member.notes || '—'}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
@@ -217,14 +219,14 @@ export default function TalentPoolDetail() {
                           onChange={(e) => handleStatusChange(member.id, e.target.value)}
                           style={{
                             padding: '6px 8px', borderRadius: '4px', border: `1.5px solid ${STATUS_COLORS[member.status] || '#ccc'}`,
-                            background: '#fff', color: STATUS_COLORS[member.status] || '#666',
+                            background: 'var(--surface-card)', color: STATUS_COLORS[member.status] || 'var(--text-secondary)',
                             fontSize: '12px', fontWeight: 500, cursor: 'pointer'
                           }}
                         >
-                          <option value="ACTIVE">Actif</option>
-                          <option value="CONTACTED">Contacté</option>
-                          <option value="HIRED">Embauché</option>
-                          <option value="REJECTED">Rejeté</option>
+                          <option value="ACTIVE">{t.statusActive}</option>
+                          <option value="CONTACTED">{t.statusContacted}</option>
+                          <option value="HIRED">{t.statusHired}</option>
+                          <option value="REJECTED">{t.statusRejected}</option>
                         </select>
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
@@ -232,9 +234,9 @@ export default function TalentPoolDetail() {
                           onClick={() => handleRemoveMember(member.id)}
                           style={{
                             padding: '6px 8px', borderRadius: '4px', border: '1px solid #fee',
-                            background: '#fff', color: '#c42033', cursor: 'pointer', fontSize: '12px'
+                            background: 'var(--surface-card)', color: '#c42033', cursor: 'pointer', fontSize: '12px'
                           }}
-                          title="Supprimer"
+                          title={t.remove}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -254,26 +256,26 @@ export default function TalentPoolDetail() {
               onClick={() => setPage(Math.max(0, page - 1))}
               disabled={page === 0}
               style={{
-                padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff',
+                padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--surface-border)', background: 'var(--surface-card)',
                 cursor: page === 0 ? 'not-allowed' : 'pointer', opacity: page === 0 ? 0.5 : 1,
-                display: 'flex', alignItems: 'center', gap: '8px'
+                display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)'
               }}
             >
-              <ChevronLeft size={14} /> Précédent
+              <ChevronLeft size={14} /> {t.previous}
             </button>
-            <span style={{ fontSize: '13px', color: '#666' }}>
-              Page {page + 1} sur {totalPages}
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              {t.pageOf.replace('{p}', page + 1).replace('{t}', totalPages)}
             </span>
             <button
               onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
               disabled={page >= totalPages - 1}
               style={{
-                padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff',
+                padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--surface-border)', background: 'var(--surface-card)',
                 cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer', opacity: page >= totalPages - 1 ? 0.5 : 1,
-                display: 'flex', alignItems: 'center', gap: '8px'
+                display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)'
               }}
             >
-              Suivant <ChevronRight size={14} />
+              {t.next} <ChevronRight size={14} />
             </button>
           </div>
         )}
@@ -284,43 +286,43 @@ export default function TalentPoolDetail() {
           style={{
             display: 'flex', alignItems: 'center', gap: '8px',
             padding: '12px 24px', borderRadius: '8px', fontSize: '14px', fontWeight: 600,
-            backgroundColor: '#fff', color: '#c42033', border: '1.5px solid #c42033',
+            backgroundColor: 'var(--surface-card)', color: '#c42033', border: '1.5px solid #c42033',
             cursor: 'pointer', transition: 'all 0.2s'
           }}
           onMouseEnter={(e) => {
-            e.target.style.backgroundColor = '#fff5f7'
+            e.target.style.backgroundColor = 'var(--surface-page-alt)'
           }}
           onMouseLeave={(e) => {
-            e.target.style.backgroundColor = '#fff'
+            e.target.style.backgroundColor = 'var(--surface-card)'
           }}
         >
-          <Sparkles size={16} /> Voir les recommandations
+          <Sparkles size={16} /> {t.viewRecommendations}
         </button>
 
         {/* Recommendations Section */}
         {showRecommendations && (
-          <div style={{ marginTop: '40px', padding: '20px', borderRadius: '8px', background: '#fff', border: '1px solid #ebebeb' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#1a1a1a', margin: '0 0 16px 0' }}>
-              Candidats recommandés
+          <div style={{ marginTop: '40px', padding: '20px', borderRadius: '8px', background: 'var(--surface-card)', border: '1px solid var(--surface-border)' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 16px 0' }}>
+              {t.recommendedCandidates}
             </h3>
             {recommendedCandidates.length === 0 ? (
-              <p style={{ fontSize: '13px', color: '#999', margin: 0 }}>Aucun candidat recommandé pour le moment</p>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>{t.noRecommendations}</p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '16px' }}>
                 {recommendedCandidates.map(candidate => (
                   <div key={candidate.id} style={{
-                    padding: '16px', borderRadius: '8px', background: '#f5f5f5', textAlign: 'center'
+                    padding: '16px', borderRadius: '8px', background: 'var(--surface-border-soft)', textAlign: 'center'
                   }}>
                     {candidate.avatar && (
                       <img src={candidate.avatar} alt={candidate.name} style={{
-                        width: '48px', height: '48px', borderRadius: '50%', marginBottom: '8px', background: '#ddd'
+                        width: '48px', height: '48px', borderRadius: '50%', marginBottom: '8px', background: 'var(--surface-border)'
                       }} />
                     )}
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a1a', margin: '0 0 4px 0' }}>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
                       {candidate.name}
                     </p>
-                    <p style={{ fontSize: '12px', color: '#999', margin: '0 0 8px 0' }}>
-                      {candidate.score ? `Score: ${candidate.score}%` : 'N/A'}
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 8px 0' }}>
+                      {candidate.score ? `${t.score}: ${candidate.score}%` : 'N/A'}
                     </p>
                     <button
                       style={{
@@ -328,7 +330,7 @@ export default function TalentPoolDetail() {
                         backgroundColor: '#c42033', color: '#fff', border: 'none', cursor: 'pointer'
                       }}
                     >
-                      Ajouter
+                      {t.add}
                     </button>
                   </div>
                 ))}
